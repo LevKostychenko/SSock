@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SSock.Client.Core\SSock.Client.Core.csproj" />
+    <ProjectReference Include="..\SSock.Core\SSock.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config\clientConfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

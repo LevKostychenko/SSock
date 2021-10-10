@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SSock.Core.Infrastructure;
+using SSock.Server.Extensions;
 
 namespace SSock.Server
 {
@@ -6,7 +7,9 @@ namespace SSock.Server
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            ServiceBuilder
+                .BuildServiceCollection()
+                .AddDI();
         }
     }
 }
