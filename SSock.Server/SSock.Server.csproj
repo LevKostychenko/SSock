@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -11,6 +11,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SSock.Core\SSock.Core.csproj" />
+    <ProjectReference Include="..\SSock.Server.Core.Abstract\SSock.Server.Core.Abstract.csproj" />
+    <ProjectReference Include="..\SSock.Server.Core\SSock.Server.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config\serverconfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

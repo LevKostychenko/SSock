@@ -19,7 +19,8 @@ namespace SSock.Client
                .BuildServiceCollection()
                .AddConfiguration(
                     Path.Combine(
-                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Config\clientConfig.json"), args)
+                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
+                        @"Config\clientconfig.json"), args)
                .AddDI()
                .BuildServiceProvider();
 
