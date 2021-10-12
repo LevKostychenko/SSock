@@ -26,20 +26,22 @@ namespace SSock.Server.Core.ServerEngine
         {
             var section = _configuration.GetSection("listener");
             var (address, port) = (section["address"], section["port"]);
-            TcpListener listener = null;
+            var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var ipPoint = new IPEndPoint(IPAddress.Parse(address), Int32.Parse(port));
 
             try
             {
-                listener = new TcpListener(IPAddress.Parse(address), Int32.Parse(port));
-                listener.Start();
+                listenSocket.Bind(ipPoint);
+                listenSocket.Listen(20);
+               
                 Console.WriteLine("Waiting for connections...");
 
                 while (true)
                 {
-                    var client = listener.AcceptTcpClient();
+                    var socket = listenSocket.Accept();
 
                     Task.Run(async () => 
-                        await _serverProcess.ProcessAsync(client));
+                        await _serverProcess.ProcessAsync(socket));
                 }
             }
             catch (Exception ex)
@@ -48,9 +50,10 @@ namespace SSock.Server.Core.ServerEngine
             }
             finally
             {
-                if (listener != null)
+                if (listenSocket != null)
                 {
-                    listener.Stop();
+                    listenSocket.Shutdown(SocketShutdown.Both);
+                    listenSocket.Close();
                 }
             }
         }

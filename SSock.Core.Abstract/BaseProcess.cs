@@ -14,26 +14,26 @@ namespace SSock.Core.Abstract
             Console.WriteLine("Error: " + error);
         }
 
-        protected async Task SendDataAsync(NetworkStream stream, string message)
+        protected async Task SendDataAsync(Socket socket, string message)
         {
             if (!string.IsNullOrEmpty(message))
             {
                 var encodedCommand = Encoding.Unicode.GetBytes(message);
-                await stream.WriteAsync(encodedCommand, 0, encodedCommand.Length);
+                await socket.SendAsync(new ArraySegment<byte>(encodedCommand), SocketFlags.None);
             }
         }
 
-        protected async Task<string> ReadDataAsync(NetworkStream stream)
+        protected async Task<string> ReadDataAsync(Socket socket)
         {
-            var data = new byte[READ_CHUNK_SIZE];
+            var data = new ArraySegment<byte>(new byte[READ_CHUNK_SIZE]);
             var builder = new StringBuilder();
 
             do
             {
-                var bytes = await stream.ReadAsync(data, 0, data.Length);
-                builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
+                var bytes = await socket.ReceiveAsync(data, SocketFlags.None);
+                builder.Append(Encoding.Unicode.GetString(data.Array, 0, bytes));
             }
-            while (stream.DataAvailable);
+            while (socket.Available > 0);
 
             return builder.ToString();
         }

@@ -10,20 +10,16 @@ namespace SSock.Server.Core.ServerEngine
         : BaseProcess,
         IServerProcess
     {
-        public async Task ProcessAsync(TcpClient client)
+        public async Task ProcessAsync(Socket socket)
         {
-            NetworkStream stream = null;
-
             try
             {
-                stream = client.GetStream();
-
                 while (true)
                 {
-                    var clientMessage = await ReadDataAsync(stream);
+                    var clientMessage = await ReadDataAsync(socket);
                     Console.WriteLine(clientMessage);
 
-                    await SendDataAsync(stream, "Message received");
+                    await SendDataAsync(socket, "Message received");
                 }
             }
             catch (Exception ex)
@@ -32,14 +28,10 @@ namespace SSock.Server.Core.ServerEngine
             }
             finally
             {
-                if (stream != null)
+                if (socket != null)
                 {
-                    stream.Close();
-                }
-
-                if (client != null)
-                {
-                    client.Close();
+                    socket.Shutdown(SocketShutdown.Both);
+                    socket.Close();
                 }
             }
         }

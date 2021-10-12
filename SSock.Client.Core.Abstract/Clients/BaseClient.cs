@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using SSock.Core.Abstract;
 using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -22,22 +23,24 @@ namespace SSock.Client.Core.Abstract.Clients
         public virtual async Task RunAsync()
         {
             IsRunning = true;
-            TcpClient client = null;
+            Socket socket = null;
 
             try
             {
                 var (port, address) = (
                     _configurationSection["port"],
                     _configurationSection["address"]);
-                client = new TcpClient(address, Int32.Parse(port));
-                var stream = client.GetStream();
+
+                var ipPoint = new IPEndPoint(IPAddress.Parse(address), Int32.Parse(port));
+                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.Connect(ipPoint);
 
                 while (IsRunning)
                 {
                     var userCommand = Console.ReadLine();
-                    await SendDataAsync(stream, userCommand);
+                    await SendDataAsync(socket, userCommand);
 
-                    var receivedData = await ReadDataAsync(stream);
+                    var receivedData = await ReadDataAsync(socket);
                 }
             }
             catch(Exception ex)
@@ -46,9 +49,10 @@ namespace SSock.Client.Core.Abstract.Clients
             }
             finally
             {
-                if (client != null)
+                if (socket != null)
                 {
-                    client.Close();
+                    socket.Shutdown(SocketShutdown.Both);
+                    socket.Close();
                 }
             }
         }

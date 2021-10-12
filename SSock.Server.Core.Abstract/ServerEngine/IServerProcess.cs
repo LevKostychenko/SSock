@@ -5,6 +5,6 @@ namespace SSock.Server.Core.Abstract.ServerEngine
 {
     public interface IServerProcess
     {
-        Task ProcessAsync(TcpClient client);
+        Task ProcessAsync(Socket socket);
     }
 }

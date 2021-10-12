@@ -4,4 +4,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SSock.Core.Abstract\SSock.Core.Abstract.csproj" />
+  </ItemGroup>
+
 </Project>
