@@ -41,6 +41,7 @@ namespace SSock.Client.Core.Abstract.Clients
                     await SendDataAsync(socket, userCommand);
 
                     var receivedData = await ReadDataAsync(socket);
+                    Console.WriteLine($"{DateTime.Now} Response: " + receivedData);
                 }
             }
             catch(Exception ex)

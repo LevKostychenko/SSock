@@ -14,6 +14,8 @@ namespace SSock.Server.Core.ServerEngine
 
         private readonly IServerProcess _serverProcess;
 
+        private bool IsRunning = true;
+
         public ServerRunner(
             IConfiguration configuration,
             IServerProcess serverProcess)
@@ -36,12 +38,12 @@ namespace SSock.Server.Core.ServerEngine
                
                 Console.WriteLine("Waiting for connections...");
 
-                while (true)
+                while (IsRunning)
                 {
                     var socket = listenSocket.Accept();
 
                     Task.Run(async () => 
-                        await _serverProcess.ProcessAsync(socket));
+                        await _serverProcess.ProcessAsync(socket, StopServer));
                 }
             }
             catch (Exception ex)
@@ -56,6 +58,11 @@ namespace SSock.Server.Core.ServerEngine
                     listenSocket.Close();
                 }
             }
+        }
+
+        private void StopServer()
+        {
+            IsRunning = false;
         }
     }
 }

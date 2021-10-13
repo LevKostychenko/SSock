@@ -1,4 +1,5 @@
 ﻿using SSock.Core.Abstract;
+using SSock.Server.Core.Abstract.CommandProcessing;
 using SSock.Server.Core.Abstract.ServerEngine;
 using System;
 using System.Net.Sockets;
@@ -10,7 +11,16 @@ namespace SSock.Server.Core.ServerEngine
         : BaseProcess,
         IServerProcess
     {
-        public async Task ProcessAsync(Socket socket)
+        private readonly ICommandProcessor _commandProcessor;
+
+        public ServerProcess(ICommandProcessor commandProcessor)
+        {
+            _commandProcessor = commandProcessor;
+        }
+
+        public async Task ProcessAsync(
+            Socket socket, 
+            Action stopServerDelegate)
         {
             try
             {
@@ -18,8 +28,26 @@ namespace SSock.Server.Core.ServerEngine
                 {
                     var clientMessage = await ReadDataAsync(socket);
                     Console.WriteLine(clientMessage);
+                    string response = string.Empty;
 
-                    await SendDataAsync(socket, "Message received");
+                    try
+                    {
+                        response = _commandProcessor.Process(clientMessage);
+
+                        if (IsRequestToClose(response))
+                        {
+                            await SendDataAsync(socket, "Connection closed.");
+                            stopServerDelegate();
+                            break;
+                        }
+                    }
+                    catch (NotSupportedException ex)
+                    {
+                        await SendDataAsync(socket, ex.Message);
+                        continue;
+                    }
+
+                    await SendDataAsync(socket, response);
                 }
             }
             catch (Exception ex)
@@ -35,5 +63,8 @@ namespace SSock.Server.Core.ServerEngine
                 }
             }
         }
+
+        private bool IsRequestToClose(string serverResponse)
+            => serverResponse.Equals("close", StringComparison.OrdinalIgnoreCase);
     }
 }

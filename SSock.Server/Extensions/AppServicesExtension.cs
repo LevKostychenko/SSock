@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using SSock.Core.Commands;
 using SSock.Server.Core;
 
 namespace SSock.Server.Extensions
@@ -7,6 +8,7 @@ namespace SSock.Server.Extensions
     {
         public static IServiceCollection AddDI(this IServiceCollection services)
             => services
-                .AddServer();
+                .AddServer()
+                .AddCommands();
     }
 }
