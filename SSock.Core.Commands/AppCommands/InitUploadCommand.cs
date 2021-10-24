@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace SSock.Core.Commands.AppCommands
 {
-    internal sealed class UploadFileCommand
+    internal sealed class InitUploadCommand
         : ICommand
     {
         private readonly IFileUploaderService _fileUploaderService;
 
-        public UploadFileCommand(IFileUploaderService fileUploaderService)
+        public InitUploadCommand(IFileUploaderService fileUploaderService)
         {
             _fileUploaderService = fileUploaderService;
         }

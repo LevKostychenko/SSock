@@ -22,9 +22,10 @@ namespace SSock.Client.Core.Abstract.Clients
             _configurationSection = configurationSection;
         }
 
-        protected abstract void ProcessUserCommandWithRespons(
+        protected abstract Task ProcessUserCommandWithResponseAsync(
             string command,
-            string receivedData);
+            string receivedData,
+            Socket socket);
 
         public virtual async Task RunAsync()
         {
@@ -43,7 +44,10 @@ namespace SSock.Client.Core.Abstract.Clients
                     await SendDataAsync(socket, userCommand.Trim() + $" {ClientId}");
                     var receivedData = await ReadDataAsync(socket);
 
-                    ProcessUserCommandWithRespons(userCommand, receivedData);
+                    await ProcessUserCommandWithResponseAsync(
+                        userCommand, 
+                        receivedData, 
+                        socket);
                     Console.WriteLine($"{DateTime.Now} Response: " + receivedData);
                 }
             }

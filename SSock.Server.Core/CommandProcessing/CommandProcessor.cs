@@ -1,4 +1,5 @@
 ﻿using SSock.Core.Commands.Abstract.CommandsFactory;
+using SSock.Core.Services.Abstract.Commands;
 using SSock.Server.Core.Abstract.CommandProcessing;
 using System;
 using System.Linq;
@@ -10,15 +11,19 @@ namespace SSock.Server.Core.CommandProcessing
         : ICommandProcessor
     {
         private readonly ICommandFactory _commandFactory;
+        private readonly ICommandService _commandService;
 
-        public CommandProcessor(ICommandFactory commandFactory)
+        public CommandProcessor(
+            ICommandFactory commandFactory,
+            ICommandService commandService)
         {
             _commandFactory = commandFactory;
+            _commandService = commandService;
         }
 
         public async Task<string> ProcessAsync(string command)
         {
-            var parsedCommand = ParseCommand(command);
+            var parsedCommand = _commandService.ParseCommand(command);
             var clientCommand = _commandFactory.CreateCommand(
                 parsedCommand.command.ToUpper());
 
@@ -31,18 +36,6 @@ namespace SSock.Server.Core.CommandProcessing
             return await clientCommand.ExecuteAsync(
                 parsedCommand.args, 
                 clientId);
-        }
-
-        private (string command, string[] args ) ParseCommand(string command)
-        {
-            if (string.IsNullOrEmpty(command))
-            {
-                throw new Exception("Unsopported command");
-            }
-
-            var commandParts = command.Split(" ");
-
-            return (commandParts[0], commandParts.Skip(1).ToArray());
-        }
+        }       
     }
 }

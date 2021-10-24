@@ -21,9 +21,7 @@ namespace SSock.Core.Infrastructure.Session
         
         public async Task<T> GetOrCreateAsync<T>(object key, T value)
         {
-            T cacheEntry;
-
-            if (!_cache.TryGetValue(key, out cacheEntry))
+            if (!_cache.TryGetValue(key, out T cacheEntry))
             {
                 var locker = _locks.GetOrAdd(key, v => new SemaphoreSlim(1, 1));
 
@@ -43,6 +41,24 @@ namespace SSock.Core.Infrastructure.Session
             }
 
             return cacheEntry;
+        }
+
+        public T Get<T>(object key)
+        {
+            if (!_cache.TryGetValue(key, out T cacheEntry))
+            {
+                return default;
+            }
+
+            return cacheEntry;
+        }
+
+        public void Remove(object key)
+        {
+            if (_cache.TryGetValue(key, out object cacheEntry))
+            {
+                _cache.Remove(key);
+            }
         }
     }
 }

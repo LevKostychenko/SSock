@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using SSock.Client.Core;
+using SSock.Core.Services;
 
 namespace SSock.Client.Extensions
 {
@@ -7,6 +8,7 @@ namespace SSock.Client.Extensions
     {
         public static IServiceCollection AddDI(this IServiceCollection services)
             => services
-               .AddClients();
+               .AddClients()
+               .AddServices();
     }
 }

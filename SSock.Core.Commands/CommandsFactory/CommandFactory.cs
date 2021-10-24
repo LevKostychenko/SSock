@@ -20,7 +20,8 @@ namespace SSock.Core.Commands.CommandsFactory
 
         public ICommand CreateCommand(string command)
         {
-            var abstractCommnds = (IEnumerable<ICommand>)_serviceProvider.GetServices(typeof(ICommand));
+            var abstractCommnds = (IEnumerable<ICommand>)_serviceProvider
+                .GetServices(typeof(ICommand));
 
             switch (command)
             {
@@ -42,10 +43,16 @@ namespace SSock.Core.Commands.CommandsFactory
                             .Where(c => c is TimeCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.UploadCommand:
+                case CommandsNames.InitUploadCommand:
                     {
-                        return (UploadFileCommand)abstractCommnds
-                            .Where(c => c is UploadFileCommand)
+                        return (InitUploadCommand)abstractCommnds
+                            .Where(c => c is InitUploadCommand)
+                            .FirstOrDefault();
+                    }
+                case CommandsNames.UploadDataCommand:
+                    {
+                        return (UploadDataCommand)abstractCommnds
+                            .Where(c => c is UploadDataCommand)
                             .FirstOrDefault();
                     }
                 default:
