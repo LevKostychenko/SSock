@@ -1,5 +1,6 @@
 ﻿using SSock.Core.Commands.Abstract.AppCommands;
 using System;
+using System.Threading.Tasks;
 
 namespace SSock.Core.Commands.AppCommands
 {
@@ -8,17 +9,22 @@ namespace SSock.Core.Commands.AppCommands
     {
         private const string UtcArg = "-utc";
 
-        public string Execute(string[] commandArgumants)
+        public async Task<string> ExecuteAsync(
+            string[] commandArgumants,
+            string clientId)
         {
-            if (commandArgumants.Length > 0)
+            return await Task.Run(() =>
             {
-                if (commandArgumants[0] == UtcArg)
+                if (commandArgumants.Length > 0)
                 {
-                    return DateTime.UtcNow.ToString();
+                    if (commandArgumants[0] == UtcArg)
+                    {
+                        return DateTime.UtcNow.ToString();
+                    }
                 }
-            }
 
-            return DateTime.Now.ToString();
+                return DateTime.Now.ToString();
+            });
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using SSock.Client.Core.Abstract.Clients;
+using SSock.Core.Commands;
 using System;
 using System.Threading.Tasks;
 
@@ -13,14 +14,22 @@ namespace SSock.Client.Core.Clients
             : base(configuration.GetSection("server"))
         {}
 
-        public override async Task RunAsync()
+        protected override void ProcessUserCommandWithRespons(
+            string command,
+            string receivedData)
         {
-            await base.RunAsync();
+            if (command.Equals(
+                CommandsNames.UploadCommand, 
+                StringComparison.OrdinalIgnoreCase))
+            {
+                
+            }
         }
 
+        public override async Task RunAsync()
+            => await base.RunAsync();        
+
         public override void Stop()
-        {
-            throw new NotImplementedException();
-        }
+            => throw new NotImplementedException();
     }
 }

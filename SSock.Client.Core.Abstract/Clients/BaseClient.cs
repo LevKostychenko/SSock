@@ -13,6 +13,8 @@ namespace SSock.Client.Core.Abstract.Clients
     {
         protected virtual bool IsRunning { get; set; }
 
+        private string ClientId { get; set; }
+
         private readonly IConfigurationSection _configurationSection;
 
         protected BaseClient(IConfigurationSection configurationSection)
@@ -20,27 +22,28 @@ namespace SSock.Client.Core.Abstract.Clients
             _configurationSection = configurationSection;
         }
 
+        protected abstract void ProcessUserCommandWithRespons(
+            string command,
+            string receivedData);
+
         public virtual async Task RunAsync()
         {
             IsRunning = true;
             Socket socket = null;
 
             try
-            {
-                var (port, address) = (
-                    _configurationSection["port"],
-                    _configurationSection["address"]);
-
-                var ipPoint = new IPEndPoint(IPAddress.Parse(address), Int32.Parse(port));
-                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.Connect(ipPoint);
+            {                
+                var ipPoint = InitSocket(ref socket);
+                await ConnectAsync(socket, ipPoint);
 
                 while (IsRunning)
                 {
                     var userCommand = Console.ReadLine();
-                    await SendDataAsync(socket, userCommand);
 
+                    await SendDataAsync(socket, userCommand.Trim() + $" {ClientId}");
                     var receivedData = await ReadDataAsync(socket);
+
+                    ProcessUserCommandWithRespons(userCommand, receivedData);
                     Console.WriteLine($"{DateTime.Now} Response: " + receivedData);
                 }
             }
@@ -61,6 +64,39 @@ namespace SSock.Client.Core.Abstract.Clients
         public virtual void Stop()
         {
             IsRunning = false;
-        }        
+        }
+
+        private async Task ConnectAsync(
+            Socket socket, 
+            IPEndPoint ipPoint)
+        {
+            Console.WriteLine("Connection to the server...");
+            socket.Connect(ipPoint);
+            ClientId = Guid.NewGuid().ToString();
+
+            await SendDataAsync(socket, $"{INIT_MESSAGE} {ClientId}");
+
+            var receivedData = await ReadDataAsync(socket);
+            if (receivedData == CONNECTED_MESSAGE)
+            {
+                Console.WriteLine("Connected successfully");
+            }
+        }
+
+        private IPEndPoint InitSocket(ref Socket socket)
+        {
+            var (port, address) = (
+                    _configurationSection["port"],
+                    _configurationSection["address"]);
+
+            var ipPoint = new IPEndPoint(
+                IPAddress.Parse(address),
+                Int32.Parse(port));
+            socket = new Socket(
+                AddressFamily.InterNetwork, 
+                SocketType.Stream, ProtocolType.Tcp);
+
+            return ipPoint;
+        }       
     }
 }

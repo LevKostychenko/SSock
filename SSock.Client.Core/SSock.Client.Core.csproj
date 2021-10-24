@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SSock.Client.Core.Abstract\SSock.Client.Core.Abstract.csproj" />
+    <ProjectReference Include="..\SSock.Core.Commands\SSock.Core.Commands.csproj" />
   </ItemGroup>
 
 </Project>

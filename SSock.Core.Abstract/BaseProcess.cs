@@ -8,7 +8,9 @@ namespace SSock.Core.Abstract
     public abstract class BaseProcess
     {
         protected const int READ_CHUNK_SIZE = 256;
-
+        protected const string INIT_MESSAGE = "INIT";
+        protected const string CONNECTED_MESSAGE = "CONNECTED";
+        
         protected void LogError(string error)
         {
             Console.WriteLine("Error: " + error);

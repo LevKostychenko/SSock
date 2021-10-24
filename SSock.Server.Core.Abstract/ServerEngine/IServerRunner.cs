@@ -1,7 +1,9 @@
-﻿namespace SSock.Server.Core.Abstract.ServerEngine
+﻿using System.Threading.Tasks;
+
+namespace SSock.Server.Core.Abstract.ServerEngine
 {
     public interface IServerRunner
     {
-        void Run();
+        Task RunAsync();
     }
 }

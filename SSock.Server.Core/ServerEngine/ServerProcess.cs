@@ -1,7 +1,9 @@
 ﻿using SSock.Core.Abstract;
+using SSock.Core.Infrastructure.Session;
 using SSock.Server.Core.Abstract.CommandProcessing;
 using SSock.Server.Core.Abstract.ServerEngine;
 using System;
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -27,12 +29,20 @@ namespace SSock.Server.Core.ServerEngine
                 while (true)
                 {
                     var clientMessage = await ReadDataAsync(socket);
-                    Console.WriteLine(clientMessage);
+                    var (isNewClient, clientId) = IsNewClientConnected(clientMessage);
+
+                    if (isNewClient && !string.IsNullOrEmpty(clientId))
+                    {
+                        await NewClientConnectedAsync(clientId, socket);                        
+                        continue;
+                    }
+
+                    Console.WriteLine($"{clientMessage}");
                     string response = string.Empty;
 
                     try
                     {
-                        response = _commandProcessor.Process(clientMessage);
+                        response = await _commandProcessor.ProcessAsync(clientMessage);
 
                         if (IsRequestToClose(response))
                         {
@@ -66,5 +76,26 @@ namespace SSock.Server.Core.ServerEngine
 
         private bool IsRequestToClose(string serverResponse)
             => serverResponse.Equals("close", StringComparison.OrdinalIgnoreCase);
+
+        private (bool, string) IsNewClientConnected(string message)
+        {
+            var messageParts = message.Split(" ");
+
+            if (messageParts.Length == 2 
+                && messageParts[0] == INIT_MESSAGE 
+                && !string.IsNullOrEmpty(messageParts[1]))
+            {
+                return (true, messageParts[1]);
+            }
+
+            return (false, string.Empty);
+        }
+
+        private async Task NewClientConnectedAsync(string clientId, Socket socket)
+        {
+            ServerSession.InitNewSession(clientId);
+            Console.WriteLine($"Client with ID {clientId} is connected.");
+            await SendDataAsync(socket, CONNECTED_MESSAGE);
+        }
     }
 }

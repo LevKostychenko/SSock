@@ -1,7 +1,9 @@
-﻿namespace SSock.Server.Core.Abstract.CommandProcessing
+﻿using System.Threading.Tasks;
+
+namespace SSock.Server.Core.Abstract.CommandProcessing
 {
     public interface ICommandProcessor
     {
-        string Process(string command);
+        Task<string> ProcessAsync(string command);
     }
 }

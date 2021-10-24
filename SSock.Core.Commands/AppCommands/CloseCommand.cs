@@ -1,13 +1,16 @@
 ﻿using SSock.Core.Commands.Abstract.AppCommands;
+using System.Threading.Tasks;
 
 namespace SSock.Core.Commands.AppCommands
 {
     internal sealed class CloseCommand
         : ICommand
     {
-        public string Execute(string[] commandArgumants)
+        public async Task<string> ExecuteAsync(
+            string[] commandArgumants, 
+            string clientId)
         {
-            return "CLOSE";
+            return await Task.Run(() => { return "CLOSE"; });
         }
     }
 }

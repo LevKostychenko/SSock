@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -10,8 +10,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SSock.Core.Abstract\SSock.Core.Abstract.csproj" />
     <ProjectReference Include="..\SSock.Core.Commands.Abstract\SSock.Core.Commands.Abstract.csproj" />
+    <ProjectReference Include="..\SSock.Core\SSock.Core.csproj" />
     <ProjectReference Include="..\SSock.Server.Core.Abstract\SSock.Server.Core.Abstract.csproj" />
   </ItemGroup>
 

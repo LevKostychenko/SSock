@@ -15,14 +15,14 @@ namespace SSock.Server
                 .BuildServiceCollection()
                 .AddConfiguration(
                     Path.Combine(
-                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
+                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
                         @"Config\serverconfig.json"), args)
                .AddDI()
                .BuildServiceProvider();
 
             var runner = (IServerRunner)services.GetService(typeof(IServerRunner));
 
-            runner.Run();
+            runner.RunAsync().Wait();
         }
     }
 }

@@ -1,18 +1,23 @@
 ﻿using SSock.Core.Commands.Abstract.AppCommands;
+using System.Threading.Tasks;
 
 namespace SSock.Core.Commands.AppCommands
 {
     internal sealed class EchoCommand 
         : ICommand
     {
-        public string Execute(string[] commandArgumants)
+        public async Task<string> ExecuteAsync(
+            string[] commandArgumants,
+            string clientId)
         {
-            if (commandArgumants.Length > 0)
-            {
-                return string.Join(" ", commandArgumants);
-            }
+            return await Task.Run(() => { 
+                if (commandArgumants.Length > 0)
+                {
+                    return string.Join(" ", commandArgumants);
+                }
 
-            return string.Empty;
+                return string.Empty;
+            });
         }
     }
 }

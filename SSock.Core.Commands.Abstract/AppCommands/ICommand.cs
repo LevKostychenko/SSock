@@ -1,7 +1,11 @@
-﻿namespace SSock.Core.Commands.Abstract.AppCommands
+﻿using System.Threading.Tasks;
+
+namespace SSock.Core.Commands.Abstract.AppCommands
 {
     public interface ICommand
     {
-        string Execute(string[] commandArgumants);
+        Task<string> ExecuteAsync(
+            string[] commandArgumants,
+            string clientId);
     }
 }

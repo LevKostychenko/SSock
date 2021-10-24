@@ -24,7 +24,7 @@ namespace SSock.Server.Core.ServerEngine
             _serverProcess = serverProcess;
         }
 
-        public void Run()
+        public async Task RunAsync()
         {
             var section = _configuration.GetSection("listener");
             var (address, port) = (section["address"], section["port"]);
@@ -37,14 +37,20 @@ namespace SSock.Server.Core.ServerEngine
                 listenSocket.Listen(20);
                
                 Console.WriteLine("Waiting for connections...");
-
-                while (IsRunning)
+                while (true)
                 {
-                    var socket = listenSocket.Accept();
-
-                    Task.Run(async () => 
-                        await _serverProcess.ProcessAsync(socket, StopServer));
+                    var socket = listenSocket.Accept();                
+                    await _serverProcess.ProcessAsync(socket, StopServer);
                 }
+
+                //while (IsRunning)
+                //{
+                //    var socket = listenSocket.Accept();
+                //    await _serverProcess.ProcessAsync(socket, StopServer);
+
+                //    Task.Run(async () => 
+                //        await _serverProcess.ProcessAsync(socket, StopServer));
+                //}
             }
             catch (Exception ex)
             {
@@ -53,8 +59,7 @@ namespace SSock.Server.Core.ServerEngine
             finally
             {
                 if (listenSocket != null)
-                {
-                    listenSocket.Shutdown(SocketShutdown.Both);
+                {                    
                     listenSocket.Close();
                 }
             }

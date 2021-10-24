@@ -2,6 +2,7 @@
 using SSock.Server.Core.Abstract.CommandProcessing;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SSock.Server.Core.CommandProcessing
 {
@@ -15,7 +16,7 @@ namespace SSock.Server.Core.CommandProcessing
             _commandFactory = commandFactory;
         }
 
-        public string Process(string command)
+        public async Task<string> ProcessAsync(string command)
         {
             var parsedCommand = ParseCommand(command);
             var clientCommand = _commandFactory.CreateCommand(
@@ -26,7 +27,10 @@ namespace SSock.Server.Core.CommandProcessing
                 throw new NotSupportedException("Unsopported command");
             }
 
-            return clientCommand.Execute(parsedCommand.args);
+            var clientId = parsedCommand.args.Last();
+            return await clientCommand.ExecuteAsync(
+                parsedCommand.args, 
+                clientId);
         }
 
         private (string command, string[] args ) ParseCommand(string command)

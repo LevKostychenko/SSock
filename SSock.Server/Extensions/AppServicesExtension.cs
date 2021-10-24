@@ -9,6 +9,7 @@ namespace SSock.Server.Extensions
         public static IServiceCollection AddDI(this IServiceCollection services)
             => services
                 .AddServer()
+                .AddServices()
                 .AddCommands();
     }
 }
