@@ -7,7 +7,7 @@ namespace SSock.Core.Commands.AppCommands
         : ICommand
     {
         public async Task<string> ExecuteAsync(
-            string[] commandArgumants, 
+            byte[] args,
             string clientId)
         {
             return await Task.Run(() => { return "CLOSE"; });

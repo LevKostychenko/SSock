@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
-using SSock.Core.Commands.Abstract.AppCommands;
+﻿using SSock.Core.Commands.Abstract.AppCommands;
+using SSock.Core.Infrastructure.Extensions;
 using SSock.Core.Infrastructure.Session;
 using SSock.Core.Services.Abstract.FileUploading;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Core.Commands.AppCommands
@@ -14,32 +14,30 @@ namespace SSock.Core.Commands.AppCommands
     {
         private readonly IFileUploaderService _fileUploaderService;
 
-        private readonly IConfiguration _configuration;
+        private const string AlreadyCommited = "ALREADY_COMMITED";
+        private const string Uploaded = "ALREADY_COMMITED";
 
-        public UploadDataCommand(
-            IFileUploaderService fileUploaderService,
-            IConfiguration configuration
-            )
+        public UploadDataCommand(IFileUploaderService fileUploaderService)
         {
-            _configuration = configuration;
             _fileUploaderService = fileUploaderService;
         }
 
         public async Task<string> ExecuteAsync(
-            string[] commandArgumants,
+            byte[] args,
             string clientId)
         {
-            (string uploadingHash, string fileName, string data) =
-                (commandArgumants[0], commandArgumants[1], commandArgumants[2]);
+            (string uploadingHash, IEnumerable<byte> data) =
+                (
+                    args.Take(64).BytesToString(), 
+                    args.TakeLast(960)
+                );
 
             if (string.IsNullOrEmpty(uploadingHash)
-                || string.IsNullOrEmpty(data)
-                || string.IsNullOrEmpty(fileName))
+                || data == null
+                || !data.Any())
             {
                 throw new Exception("Some of arguments does not presents in the request");
             }
-
-            var filePath = string.Empty;
 
             var serverSessionId = ServerSession.SessionsIds
                     .Where(s => s.clientId == clientId)
@@ -49,15 +47,15 @@ namespace SSock.Core.Commands.AppCommands
             if (_fileUploaderService
                 .IsUploadingSessionNotCommitted(serverSessionId))
             {
-                filePath = await _fileUploaderService.SaveFileAsync(
-                     _configuration.GetSection("filestorage")["savelocation"],
-                     fileName,
-                     Encoding.Unicode.GetBytes(data));
+                await _fileUploaderService.AppendFileAsync(
+                    uploadingHash, 
+                    serverSessionId, 
+                    data);
 
-                _fileUploaderService.CommitUploadingSession(serverSessionId);
+                return Uploaded;
             }
 
-            return filePath;
+            return AlreadyCommited;
         }
     }
 }

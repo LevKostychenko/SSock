@@ -1,63 +1,87 @@
 ﻿using SSock.Core.Abstract;
+using SSock.Core.Commands;
+using SSock.Core.Infrastructure;
 using SSock.Core.Infrastructure.Session;
+using SSock.Core.Services.Abstract.Communication;
 using SSock.Server.Core.Abstract.CommandProcessing;
 using SSock.Server.Core.Abstract.ServerEngine;
+using SSock.Server.Domain;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Server.Core.ServerEngine
 {
     internal class ServerProcess
-        : BaseProcess,
+        : BaseProcess<ServerPacket>,
         IServerProcess
     {
         private readonly ICommandProcessor _commandProcessor;
+        private readonly IPacketService<ClientPacket, ServerPacket> _packetService;
 
-        public ServerProcess(ICommandProcessor commandProcessor)
+        public ServerProcess(
+            ICommandProcessor commandProcessor,
+            IPacketService<ClientPacket, ServerPacket> packetService)
         {
+            _packetService = packetService;
             _commandProcessor = commandProcessor;
         }
 
+        // TODO: Refactor this method
         public async Task ProcessAsync(
-            Socket socket, 
+            Socket socket,
             Action stopServerDelegate)
         {
             try
             {
                 while (true)
                 {
-                    var clientMessage = await ReadDataAsync(socket);
-                    var (isNewClient, clientId) = IsNewClientConnected(clientMessage);
+                    var packet = await ReadDataAsync(socket);
+
+                    var (isNewClient, clientId) = IsNewClientConnected(packet);
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
                     {
-                        await NewClientConnectedAsync(clientId, socket);                        
+                        await NewClientConnectedAsync(clientId, socket);
                         continue;
                     }
 
-                    Console.WriteLine($"{clientMessage}");
+                    Console.WriteLine($"{packet.Command}");
                     string response = string.Empty;
 
                     try
                     {
-                        response = await _commandProcessor.ProcessAsync(clientMessage);
+                        response = await _commandProcessor.ProcessAsync(packet);
 
                         if (IsRequestToClose(response))
                         {
-                            await SendDataAsync(socket, "Connection closed.");
+                            await SendDataAsync(socket, _packetService.CreatePacket(
+                                new ClientPacket
+                                {
+                                    Status = Statuses.Disconnected
+                                }));
                             stopServerDelegate();
                             break;
                         }
                     }
                     catch (NotSupportedException ex)
                     {
-                        await SendDataAsync(socket, ex.Message);
+                        await SendDataAsync(socket, _packetService.CreatePacket(
+                            new ClientPacket
+                            {
+                                Status = Statuses.Unsupported
+                            }));
                         continue;
                     }
 
-                    await SendDataAsync(socket, response);
+                    await SendDataAsync(socket, _packetService.CreatePacket(
+                            new ClientPacket
+                            {
+                                Status = Statuses.Ok,
+                                Payload = Encoding.Unicode.GetBytes(response)
+                            }));
                 }
             }
             catch (Exception ex)
@@ -77,15 +101,14 @@ namespace SSock.Server.Core.ServerEngine
         private bool IsRequestToClose(string serverResponse)
             => serverResponse.Equals("close", StringComparison.OrdinalIgnoreCase);
 
-        private (bool, string) IsNewClientConnected(string message)
+        private (bool, string) IsNewClientConnected(ServerPacket packet)
         {
-            var messageParts = message.Split(" ");
-
-            if (messageParts.Length == 2 
-                && messageParts[0] == INIT_MESSAGE 
-                && !string.IsNullOrEmpty(messageParts[1]))
+            if (packet.Command.Equals(
+                CommandsNames.InitCommand,
+                StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrEmpty(packet.ClientId))
             {
-                return (true, messageParts[1]);
+                return (true, packet.ClientId);
             }
 
             return (false, string.Empty);
@@ -95,7 +118,14 @@ namespace SSock.Server.Core.ServerEngine
         {
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
-            await SendDataAsync(socket, CONNECTED_MESSAGE);
+            await SendDataAsync(socket, _packetService.CreatePacket(
+                new ClientPacket
+                {
+                    Status = Statuses.Connected
+                }));
         }
+
+        protected override ServerPacket ParsePacket(IEnumerable<byte> packet)
+            => _packetService.ParsePacket(packet);   
     }
 }

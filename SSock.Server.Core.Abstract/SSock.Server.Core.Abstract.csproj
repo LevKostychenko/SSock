@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SSock.Core.Abstract\SSock.Core.Abstract.csproj" />
+    <ProjectReference Include="..\SSock.Server.Domain\SSock.Server.Domain.csproj" />
   </ItemGroup>
 
 </Project>

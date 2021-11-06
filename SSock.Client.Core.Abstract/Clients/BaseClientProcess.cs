@@ -1,14 +1,20 @@
 ﻿using Microsoft.Extensions.Configuration;
+using SSock.Client.Domain;
 using SSock.Core.Abstract;
+using SSock.Core.Commands;
+using SSock.Core.Infrastructure;
+using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.Abstract.Clients
 {
-    public abstract class BaseClient
-        : BaseProcess, 
+    // TODO: Rename to the Process
+    public abstract class BaseClientProcess
+        : BaseProcess<ClientPacket>, 
         IClient
     {
         protected virtual bool IsRunning { get; set; }
@@ -16,15 +22,20 @@ namespace SSock.Client.Core.Abstract.Clients
         private string ClientId { get; set; }
 
         private readonly IConfigurationSection _configurationSection;
+        private readonly IPacketService<ServerPacket, ClientPacket> _packetService;
 
-        protected BaseClient(IConfigurationSection configurationSection)
+        protected BaseClientProcess(
+            IConfigurationSection configurationSection,
+            IPacketService<ServerPacket, ClientPacket> packetService)
         {
             _configurationSection = configurationSection;
+            _packetService = packetService;
         }
 
         protected abstract Task ProcessUserCommandWithResponseAsync(
+            string clientId,
             string command,
-            string receivedData,
+            ClientPacket receivedData,
             Socket socket);
 
         public virtual async Task RunAsync()
@@ -41,10 +52,21 @@ namespace SSock.Client.Core.Abstract.Clients
                 {
                     var userCommand = Console.ReadLine();
 
-                    await SendDataAsync(socket, userCommand.Trim() + $" {ClientId}");
+                    await SendDataAsync(
+                        socket,
+                        _packetService.CreatePacket(
+                            new ServerPacket
+                            {
+                                Command = userCommand,
+                                ClientId = ClientId,
+                                Payload = Encoding.Unicode.GetBytes(
+                                    _packetService.GetCommandArgumnets(userCommand))
+                            }));
+
                     var receivedData = await ReadDataAsync(socket);
 
                     await ProcessUserCommandWithResponseAsync(
+                        ClientId,
                         userCommand, 
                         receivedData, 
                         socket);
@@ -78,10 +100,17 @@ namespace SSock.Client.Core.Abstract.Clients
             socket.Connect(ipPoint);
             ClientId = Guid.NewGuid().ToString();
 
-            await SendDataAsync(socket, $"{INIT_MESSAGE} {ClientId}");
+            await SendDataAsync(
+                       socket,
+                       _packetService.CreatePacket(
+                           new ServerPacket
+                           {
+                               Command = CommandsNames.InitCommand,
+                               ClientId = ClientId
+                           }));
 
             var receivedData = await ReadDataAsync(socket);
-            if (receivedData == CONNECTED_MESSAGE)
+            if (receivedData.Status == Statuses.Connected)
             {
                 Console.WriteLine("Connected successfully");
             }

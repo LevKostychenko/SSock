@@ -1,7 +1,9 @@
 ﻿using SSock.Core.Infrastructure.Session;
 using SSock.Core.Services.Abstract.FileUploading;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SSock.Core.Services.FileUploading
@@ -11,7 +13,10 @@ namespace SSock.Core.Services.FileUploading
     {
         private const string UPLOADING_SESSION_KEY = "UPLOADING_SESSION";
 
-        public async Task<string> InitFileUploadingSessionAsync(string currentSessionId)
+        public async Task<string> InitFileUploadingSessionAsync(
+            string currentSessionId,
+            string saveLocation,
+            string fileName)
         {
             var uploadingSessionId = Guid.NewGuid().ToString();
 
@@ -19,23 +24,54 @@ namespace SSock.Core.Services.FileUploading
                     .SessionsCache[currentSessionId]
                     .GetOrCreateAsync(UPLOADING_SESSION_KEY, uploadingSessionId);
 
+            var path = $@"{saveLocation}\{fileName}";
+            File.Create(path);
+
+            await ServerSession
+                    .SessionsCache[currentSessionId]
+                    .GetOrCreateAsync(uploadingSessionId, path);
+
             return uploadingSessionId;
         }
 
         public bool IsUploadingSessionNotCommitted(string currentSessionId)
         {
-             var sessionKey = ServerSession
-                    .SessionsCache[currentSessionId]
-                    .Get<string>(UPLOADING_SESSION_KEY);
+            var sessionKey = ServerSession
+                   .SessionsCache[currentSessionId]
+                   .Get<string>(UPLOADING_SESSION_KEY);
 
             return sessionKey != default;
         }
-        
-        public void CommitUploadingSession(string currentSessionId)
+
+        public void CommitUploadingSession(
+            string currentSessionId,
+            string uploadingSessionId)
         {
             ServerSession
                 .SessionsCache[currentSessionId]
                 .Remove(UPLOADING_SESSION_KEY);
+
+            ServerSession
+                .SessionsCache[currentSessionId]
+                .Remove(uploadingSessionId);
+        }
+
+        public async Task AppendFileAsync(
+            string uploadingSessionId,
+            string currentSessionId,
+            IEnumerable<byte> data)
+        {
+            var filePath = ServerSession
+                .SessionsCache[currentSessionId]
+                .Get<string>(uploadingSessionId);
+
+            if (filePath != default)
+            {
+                using (var fileStream = new FileStream(filePath, FileMode.Append))
+                {
+                    await fileStream.WriteAsync(data.ToArray(), 0, data.Count());
+                }
+            }
         }
 
         public async Task<string> SaveFileAsync(

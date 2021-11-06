@@ -55,6 +55,12 @@ namespace SSock.Core.Commands.CommandsFactory
                             .Where(c => c is UploadDataCommand)
                             .FirstOrDefault();
                     }
+                case CommandsNames.CommitUploadCommand:
+                    {
+                        return (CommitUploadCommand)abstractCommnds
+                            .Where(c => c is CommitUploadCommand)
+                            .FirstOrDefault();
+                    }
                 default:
                     {
                         return default;

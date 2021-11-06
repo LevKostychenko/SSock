@@ -1,43 +1,58 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Core.Abstract
 {
-    public abstract class BaseProcess
+    public abstract class BaseProcess<T>
     {
         protected const int READ_CHUNK_SIZE = 256;
-        protected const string INIT_MESSAGE = "INIT";
-        protected const string CONNECTED_MESSAGE = "CONNECTED";
-        
+        protected abstract T ParsePacket(IEnumerable<byte> packet);
+
         protected void LogError(string error)
         {
             Console.WriteLine("Error: " + error);
         }
 
-        protected async Task SendDataAsync(Socket socket, string message)
+        protected async Task SendDataAsync(Socket socket, IEnumerable<byte> data)
         {
-            if (!string.IsNullOrEmpty(message))
+            if (data != null && data.Any())
             {
-                var encodedCommand = Encoding.Unicode.GetBytes(message);
-                await socket.SendAsync(new ArraySegment<byte>(encodedCommand), SocketFlags.None);
+                await socket.SendAsync(
+                    new ArraySegment<byte>(data.ToArray()), 
+                    SocketFlags.None);
             }
         }
 
-        protected async Task<string> ReadDataAsync(Socket socket)
+        protected async Task SendDataAsync(Socket socket, FileStream fileStream)
+        {
+            using (var networkStream = new BufferedStream(new NetworkStream(socket, false)))
+            {
+                await fileStream.CopyToAsync(networkStream);
+                await networkStream.FlushAsync();
+            }
+        }
+
+        protected async Task<T> ReadDataAsync(Socket socket)
         {
             var data = new ArraySegment<byte>(new byte[READ_CHUNK_SIZE]);
-            var builder = new StringBuilder();
+            var receivedPacket = new List<byte>();
 
             do
             {
                 var bytes = await socket.ReceiveAsync(data, SocketFlags.None);
-                builder.Append(Encoding.Unicode.GetString(data.Array, 0, bytes));
+
+                if (data.Array != null)
+                {
+                    receivedPacket.AddRange(data.Array);
+                }
             }
             while (socket.Available > 0);
 
-            return builder.ToString();
+            return ParsePacket(receivedPacket);
         }
     }
 }

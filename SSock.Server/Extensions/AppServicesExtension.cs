@@ -2,6 +2,7 @@
 using SSock.Core.Commands;
 using SSock.Core.Services;
 using SSock.Server.Core;
+using SSock.Server.Services;
 
 namespace SSock.Server.Extensions
 {
@@ -11,6 +12,7 @@ namespace SSock.Server.Extensions
             => services
                 .AddServer()
                 .AddServices()
+                .AddServerServices()
                 .AddCommands();
     }
 }

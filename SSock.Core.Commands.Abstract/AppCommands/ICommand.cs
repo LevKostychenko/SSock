@@ -5,7 +5,7 @@ namespace SSock.Core.Commands.Abstract.AppCommands
     public interface ICommand
     {
         Task<string> ExecuteAsync(
-            string[] commandArgumants,
+            byte[] args, 
             string clientId);
     }
 }

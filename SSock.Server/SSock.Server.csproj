@@ -17,6 +17,7 @@
     <ProjectReference Include="..\SSock.Core\SSock.Core.csproj" />
     <ProjectReference Include="..\SSock.Server.Core.Abstract\SSock.Server.Core.Abstract.csproj" />
     <ProjectReference Include="..\SSock.Server.Core\SSock.Server.Core.csproj" />
+    <ProjectReference Include="..\SSock.Server.Services\SSock.Server.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>

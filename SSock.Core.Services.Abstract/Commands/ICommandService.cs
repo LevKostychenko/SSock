@@ -2,6 +2,5 @@
 {
     public interface ICommandService
     {
-        (string command, string[] args) ParseCommand(string command);
     }
 }
