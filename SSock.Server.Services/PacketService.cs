@@ -71,11 +71,6 @@ namespace SSock.Server.Services
             return packet;
         }
 
-        public string GetCommandArgumnets(string command)
-        {
-            throw new System.NotImplementedException();
-        }
-
         public ServerPacket ParsePacket(IEnumerable<byte> packet)
         {
             if (packet == null
@@ -104,7 +99,9 @@ namespace SSock.Server.Services
                 ClientId = clientIdBytes
                     .Take(tail.clientIdLength)
                     .BytesToString(),
-                Payload = payloadBytes.ToArray(),
+                Payload = payloadBytes
+                    .Take(tail.payloadLength)
+                    .ToArray(),
                 Tail = tailBytes.ToArray()
             };
         }
@@ -134,6 +131,11 @@ namespace SSock.Server.Services
                         .ToArray(),
                     TAIL_LENGTH);
             }
+        }
+
+        public (string command, IEnumerable<string> arguments) GetCommandParts(string command)
+        {
+            throw new NotImplementedException();
         }
     }
 }

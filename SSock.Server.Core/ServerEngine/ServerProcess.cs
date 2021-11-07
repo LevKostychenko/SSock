@@ -20,12 +20,15 @@ namespace SSock.Server.Core.ServerEngine
     {
         private readonly ICommandProcessor _commandProcessor;
         private readonly IPacketService<ClientPacket, ServerPacket> _packetService;
+        private readonly IDataTransitService _dataTransitService;
 
         public ServerProcess(
             ICommandProcessor commandProcessor,
-            IPacketService<ClientPacket, ServerPacket> packetService)
+            IPacketService<ClientPacket, ServerPacket> packetService,
+            IDataTransitService dataTransitService)
         {
             _packetService = packetService;
+            _dataTransitService = dataTransitService;
             _commandProcessor = commandProcessor;
         }
 
@@ -66,7 +69,7 @@ namespace SSock.Server.Core.ServerEngine
                             break;
                         }
                     }
-                    catch (NotSupportedException ex)
+                    catch (NotSupportedException)
                     {
                         await SendDataAsync(socket, _packetService.CreatePacket(
                             new ClientPacket
@@ -80,7 +83,7 @@ namespace SSock.Server.Core.ServerEngine
                             new ClientPacket
                             {
                                 Status = Statuses.Ok,
-                                Payload = Encoding.Unicode.GetBytes(response)
+                                Payload = _dataTransitService.ConvertToByteArray(response)
                             }));
                 }
             }

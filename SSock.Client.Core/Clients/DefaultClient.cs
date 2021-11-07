@@ -1,13 +1,16 @@
 ﻿using Microsoft.Extensions.Configuration;
 using SSock.Client.Core.Abstract.Clients;
+using SSock.Client.Core.Abstract.ResponseProcessing;
 using SSock.Client.Domain;
 using SSock.Core.Commands;
+using SSock.Core.Infrastructure;
 using SSock.Core.Services.Abstract.Commands;
 using SSock.Core.Services.Abstract.Communication;
 using SSock.Core.Services.Abstract.FileUploading;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,20 +23,27 @@ namespace SSock.Client.Core.Clients
     {
         private readonly ICommandService _commandService;
         private readonly IFileUploaderService _fileUploaderService;
+        private readonly IResponseProcessorFactory _responseProcessorFactory;
         private readonly IPacketService<ServerPacket, ClientPacket> _packetService;
+        private readonly IDataTransitService _dataTransitService;
 
         public DefaultClient(
             IConfiguration configuration,
             ICommandService commandService,
             IFileUploaderService fileUploaderService,
+            IDataTransitService dataTransitService,
+            IResponseProcessorFactory responseProcessorFactory,
             IPacketService<ServerPacket, ClientPacket> packetService)
             : base(
+                  dataTransitService,
                   configuration.GetSection("server"),
                   packetService)
         {
             _packetService = packetService;
             _fileUploaderService = fileUploaderService;
             _commandService = commandService;
+            _dataTransitService = dataTransitService;
+            _responseProcessorFactory = responseProcessorFactory;
         }
 
         protected override async Task ProcessUserCommandWithResponseAsync(
@@ -41,7 +51,28 @@ namespace SSock.Client.Core.Clients
             string command,
             ClientPacket receivedData,
             Socket socket)
-        {
+        {            
+            if (receivedData.Status != Statuses.Ok)
+            {
+                Console.WriteLine(receivedData.Status);
+                return;
+            }
+
+            var processor = _responseProcessorFactory.CreateResponseProcessor(command);
+            if (processor == default)
+            {
+                throw new NotSupportedException($"{command} command is unsupported");
+            }
+
+            processor.Process(receivedData
+                .Payload
+                .Take(BitConverter.ToInt16(
+                    receivedData
+                    .Tail
+                    .Skip(2)
+                    .Take(2)
+                    .ToArray())));
+
             //var parsedCommand = _commandService.ParseCommand(command.Trim(' ')[0]);
 
             //if (parsedCommand.command.Equals(

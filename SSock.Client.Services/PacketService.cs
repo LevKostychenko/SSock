@@ -82,12 +82,14 @@ namespace SSock.Client.Services
             return packet;
         }
 
-        public string GetCommandArgumnets(string command)
-            => string.Join(
-                ' ', 
-                command
-                    .Split(' ')
-                    .Skip(1));
+        public (string command, IEnumerable<string> arguments) GetCommandParts(
+            string command)
+        {
+            var commandPart = command.Split(' ')[0];
+            var arguments = command.Split(' ').Skip(1);
+
+            return (commandPart, arguments.Any() ? arguments : null);
+        }
 
         public ClientPacket ParsePacket(IEnumerable<byte> packet)
         {

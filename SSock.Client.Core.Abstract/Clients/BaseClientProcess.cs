@@ -5,6 +5,8 @@ using SSock.Core.Commands;
 using SSock.Core.Infrastructure;
 using SSock.Core.Services.Abstract.Communication;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -12,7 +14,6 @@ using System.Threading.Tasks;
 
 namespace SSock.Client.Core.Abstract.Clients
 {
-    // TODO: Rename to the Process
     public abstract class BaseClientProcess
         : BaseProcess<ClientPacket>, 
         IClient
@@ -23,13 +24,16 @@ namespace SSock.Client.Core.Abstract.Clients
 
         private readonly IConfigurationSection _configurationSection;
         private readonly IPacketService<ServerPacket, ClientPacket> _packetService;
+        private readonly IDataTransitService _dataTransitService;
 
         protected BaseClientProcess(
+            IDataTransitService dataTransitService,
             IConfigurationSection configurationSection,
             IPacketService<ServerPacket, ClientPacket> packetService)
         {
             _configurationSection = configurationSection;
             _packetService = packetService;
+            _dataTransitService = dataTransitService;
         }
 
         protected abstract Task ProcessUserCommandWithResponseAsync(
@@ -50,27 +54,25 @@ namespace SSock.Client.Core.Abstract.Clients
 
                 while (IsRunning)
                 {
-                    var userCommand = Console.ReadLine();
+                    var parsedCommand = _packetService.GetCommandParts(Console.ReadLine());
 
                     await SendDataAsync(
                         socket,
                         _packetService.CreatePacket(
                             new ServerPacket
                             {
-                                Command = userCommand,
+                                Command = parsedCommand.command,
                                 ClientId = ClientId,
-                                Payload = Encoding.Unicode.GetBytes(
-                                    _packetService.GetCommandArgumnets(userCommand))
+                                Payload = _dataTransitService.ConvertToByteArray(parsedCommand.arguments.ToList())
                             }));
 
                     var receivedData = await ReadDataAsync(socket);
 
                     await ProcessUserCommandWithResponseAsync(
                         ClientId,
-                        userCommand, 
-                        receivedData, 
+                        parsedCommand.command,
+                        receivedData,
                         socket);
-                    Console.WriteLine($"{DateTime.Now} Response: " + receivedData);
                 }
             }
             catch(Exception ex)
@@ -106,7 +108,7 @@ namespace SSock.Client.Core.Abstract.Clients
                            new ServerPacket
                            {
                                Command = CommandsNames.InitCommand,
-                               ClientId = ClientId
+                               ClientId = ClientId  
                            }));
 
             var receivedData = await ReadDataAsync(socket);

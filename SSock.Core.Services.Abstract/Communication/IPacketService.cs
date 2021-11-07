@@ -8,6 +8,7 @@ namespace SSock.Core.Services.Abstract.Communication
 
         TOut ParsePacket(IEnumerable<byte> packet);
 
-        string GetCommandArgumnets(string command);
+        (string command, IEnumerable<string> arguments) GetCommandParts(
+            string command);
     }
 }

@@ -1,5 +1,10 @@
 ﻿using SSock.Core.Services.Abstract.Communication;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 
 namespace SSock.Core.Services.Communication
 {
@@ -20,6 +25,50 @@ namespace SSock.Core.Services.Communication
             }
 
             return initialBytes;
+        }
+
+        public T ConvertFromByteArray<T>(
+            IEnumerable<byte> data,
+            int actualDataLength)
+        {
+            if (data == null 
+                || !data.Any()
+                || actualDataLength == 0)
+            {
+                return default;
+            }
+
+            if (actualDataLength > data.Count())
+            {
+                throw new ArgumentOutOfRangeException(nameof(actualDataLength));
+            }
+
+            var formatter = new BinaryFormatter();
+
+            using (var stream = new MemoryStream(
+                data
+                    .Take(actualDataLength)
+                    .ToArray()))
+            {                
+                return (T)formatter.Deserialize(stream);
+            }
+        }
+
+        public byte[] ConvertToByteArray<T>(T data)
+        {
+            if (EqualityComparer<T>
+                .Default
+                .Equals(data, default(T)))
+            {
+                return null;
+            }
+
+            var formatter = new BinaryFormatter();
+            using (var stream = new MemoryStream())
+            {
+                formatter.Serialize(stream, data);
+                return stream.ToArray();
+            }
         }
     }
 }
