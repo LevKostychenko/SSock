@@ -25,7 +25,7 @@ namespace SSock.Core.Services.FileUploading
                     .GetOrCreateAsync(UPLOADING_SESSION_KEY, uploadingSessionId);
 
             var path = $@"{saveLocation}\{fileName}";
-            File.Create(path);
+            using var fs = File.Create(path);
 
             await ServerSession
                     .SessionsCache[currentSessionId]

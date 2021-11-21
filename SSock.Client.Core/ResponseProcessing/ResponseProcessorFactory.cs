@@ -19,7 +19,7 @@ namespace SSock.Client.Core.ResponseProcessing
             string command,
             Socket socket)
         {
-            switch (command)
+            switch (command.ToUpper())
             {
                 case CommandsNames.InitUploadCommand:
                     {

@@ -14,8 +14,7 @@ namespace SSock.Core.Commands.AppCommands
     {
         private readonly IFileUploaderService _fileUploaderService;
 
-        private const string AlreadyCommited = "ALREADY_COMMITED";
-        private const string Uploaded = "ALREADY_COMMITED";
+        private const int DATA_LENGTH = 896;
 
         public UploadDataCommand(IFileUploaderService fileUploaderService)
         {
@@ -33,7 +32,7 @@ namespace SSock.Core.Commands.AppCommands
             (string uploadingHash, IEnumerable<byte> data) =
                 (
                     args.Take(uploadingHashLength).BytesToString(),
-                    args.TakeLast(960).Take(uploadingChunkLength)
+                    args.TakeLast(DATA_LENGTH).Take(uploadingChunkLength)
                 );
 
             if (string.IsNullOrEmpty(uploadingHash)
@@ -59,7 +58,7 @@ namespace SSock.Core.Commands.AppCommands
                 return nextOffset;
             }
 
-            return 0;
+            return (long)0;
         }
     }
 }

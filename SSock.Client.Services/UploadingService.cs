@@ -10,7 +10,7 @@ namespace SSock.Client.Services
     internal class UploadingService
         : IUploadingService
     {
-        const int MAX_DATA_LENGTH = 960;
+        const int MAX_DATA_LENGTH = 896;
         const int HASH_PART_LENGTH = 128;
 
         private readonly IDataTransitService _dataTransitService;

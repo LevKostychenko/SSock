@@ -63,7 +63,10 @@ namespace SSock.Client.Core.Abstract.Clients
                             {
                                 Command = parsedCommand.command,
                                 ClientId = ClientId,
-                                Payload = _dataTransitService.ConvertToByteArray(parsedCommand.arguments.ToList())
+                                Payload = _dataTransitService.ConvertToByteArray(
+                                    parsedCommand.arguments == null 
+                                        ? new List<string> { string.Empty }
+                                        : parsedCommand.arguments.ToList())
                             }));
 
                     var receivedData = await ReadDataAsync(socket);

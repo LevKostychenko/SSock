@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using SSock.Client.Core.Abstract.ResponseProcessing;
 using SSock.Client.Domain;
 using SSock.Client.Services.Abstract;
+using SSock.Core.Abstract.Infrastructure;
 using SSock.Core.Commands;
 using SSock.Core.Infrastructure.Session;
 using SSock.Core.Services.Abstract.Communication;
@@ -15,8 +17,10 @@ using System.Threading.Tasks;
 namespace SSock.Client.Core.ResponseProcessing
 {
     internal class InitUploadResponseProcessor
-        : DefaultResponseProcessor<string>
+        : IResponseProcessor
     {
+        protected const string UPLOADING_FILE_PATH_KEY = "UPLOADING_FILE_PATH";
+
         private readonly IServiceProvider _serviceProvider;
 
         private readonly Socket _socket;
@@ -24,9 +28,6 @@ namespace SSock.Client.Core.ResponseProcessing
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
             Socket socket)
-            : base(
-                  serviceProvider,
-                  socket)
         {
             _serviceProvider = serviceProvider;
             _socket = socket;
@@ -38,10 +39,19 @@ namespace SSock.Client.Core.ResponseProcessing
             IEnumerable<byte> payload,
             string clientId)
         {
-            var uploadingHash = await base.ProcessAsync(
-                arguments,
-                payload, 
-                clientId) as string;
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+            var uploadingService = (IUploadingService)_serviceProvider
+                    .GetService(typeof(IUploadingService));
+            var config = (IConfiguration)_serviceProvider
+                   .GetService(typeof(IConfiguration));
+            var dataTransitService = (IDataTransitService)_serviceProvider
+                   .GetService(typeof(IDataTransitService));
+
+            var uploadingHash = dataTransitService
+                    .ConvertFromByteArray<string>(
+                        payload,
+                        payload.Count());
 
             if (string.IsNullOrEmpty(uploadingHash))
             {
@@ -58,16 +68,7 @@ namespace SSock.Client.Core.ResponseProcessing
             var newSessionId = ClientSession.InitNewSession(clientId);
             await ClientSession
                 .SessionsCache[newSessionId]
-                .GetOrCreateAsync(UPLOADING_FILE_PATH_KEY, filePath);
-
-            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
-                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
-            var uploadingService = (IUploadingService)_serviceProvider
-                    .GetService(typeof(IUploadingService));
-            var config = (IConfiguration)_serviceProvider
-                   .GetService(typeof(IConfiguration));
-            var dataTransitService = (IDataTransitService)_serviceProvider
-                   .GetService(typeof(IDataTransitService));
+                .GetOrCreateAsync(UPLOADING_FILE_PATH_KEY, filePath);            
 
             var chunkSize = Int32.Parse(config["chunkSize"]);
             var chunk = new byte[chunkSize];
@@ -77,8 +78,10 @@ namespace SSock.Client.Core.ResponseProcessing
                 FileMode.Open, 
                 FileAccess.Read))
             {
+                using var progress = new ProgressBar();
                 using var reader = new BinaryReader(fileReader);
                 int bytesToRead = (int)fileReader.Length;
+
                 do
                 {
                     chunk = reader.ReadBytes(chunkSize);
@@ -105,7 +108,8 @@ namespace SSock.Client.Core.ResponseProcessing
                         chunkSize,
                         p => packetService.ParsePacket(p));
 
-                    Console.WriteLine($"Uploaded {bytesToRead / fileReader.Length * 100}%");
+                    progress.Report(
+                        (double)Decimal.Divide(fileReader.Length - bytesToRead, fileReader.Length));
 
                     if (GetFileNextOffset(
                         response.Payload,
@@ -136,8 +140,9 @@ namespace SSock.Client.Core.ResponseProcessing
                         p => packetService.ParsePacket(p));
 
                 if (dataTransitService
-                    .ConvertFromByteArray<byte>(commitPacket, sizeof(byte)) == 1)
+                    .ConvertFromByteArray<int>(commitResponse.Payload, commitResponse.Payload.Length) == 1)
                 {
+                    progress.Report((double)1);
                     Console.WriteLine("Uploaded");
                 }
                 else
@@ -149,9 +154,9 @@ namespace SSock.Client.Core.ResponseProcessing
             return "Uploaded";
         }
 
-        private int GetFileNextOffset(
+        private long GetFileNextOffset(
             IEnumerable<byte> payload,
             IDataTransitService dataTransitService)
-            => dataTransitService.ConvertFromByteArray<int>(payload, sizeof(int));
+            => dataTransitService.ConvertFromByteArray<long>(payload, payload.Count());
     }
 }

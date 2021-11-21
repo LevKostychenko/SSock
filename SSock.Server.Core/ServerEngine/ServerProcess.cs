@@ -53,7 +53,7 @@ namespace SSock.Server.Core.ServerEngine
                     }
 
                     Console.WriteLine($"{packet.Command}");
-                    object response = string.Empty;
+                    object response = null;
 
                     try
                     {
@@ -103,7 +103,7 @@ namespace SSock.Server.Core.ServerEngine
         }
 
         private bool IsRequestToClose(object serverResponse)
-            => ((string)serverResponse).Equals("close", StringComparison.OrdinalIgnoreCase);
+            => serverResponse is string && ((string)serverResponse).Equals("close", StringComparison.OrdinalIgnoreCase);
 
         private (bool, string) IsNewClientConnected(ServerPacket packet)
         {

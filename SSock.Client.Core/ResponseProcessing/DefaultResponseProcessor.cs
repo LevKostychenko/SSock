@@ -15,8 +15,6 @@ namespace SSock.Client.Core.ResponseProcessing
 
         private readonly Socket _socket;
 
-        protected const string UPLOADING_FILE_PATH_KEY = "UPLOADING_FILE_PATH";
-
         public DefaultResponseProcessor(
             IServiceProvider serviceProvider,
             Socket socket)

@@ -64,6 +64,8 @@ namespace SSock.Client.Services
             }
             else
             {
+                var a = serverPacket.Payload.Count();
+
                 if (serverPacket.Payload.Count() > PAYLOAD_LENGTH)
                 {
                     throw new Exception("Payload is too large.");
