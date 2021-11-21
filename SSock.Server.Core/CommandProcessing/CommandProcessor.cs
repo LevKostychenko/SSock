@@ -3,7 +3,6 @@ using SSock.Core.Services.Abstract.Commands;
 using SSock.Server.Core.Abstract.CommandProcessing;
 using SSock.Server.Domain;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace SSock.Server.Core.CommandProcessing
@@ -22,7 +21,7 @@ namespace SSock.Server.Core.CommandProcessing
             _commandService = commandService;
         }
 
-        public async Task<string> ProcessAsync(ServerPacket packet)
+        public async Task<object> ProcessAsync(ServerPacket packet)
         {           
             var clientCommand = _commandFactory.CreateCommand(
                 packet.Command.ToUpper());
@@ -32,7 +31,10 @@ namespace SSock.Server.Core.CommandProcessing
                 throw new NotSupportedException("Unsopported command");
             }
 
-            return await clientCommand.ExecuteAsync(packet.Payload, packet.ClientId);
+            return await clientCommand.ExecuteAsync(
+                packet.Tail,
+                packet.Payload, 
+                packet.ClientId);
         }       
     }
 }

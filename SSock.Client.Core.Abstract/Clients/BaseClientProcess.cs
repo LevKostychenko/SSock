@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.Abstract.Clients
@@ -30,6 +29,7 @@ namespace SSock.Client.Core.Abstract.Clients
             IDataTransitService dataTransitService,
             IConfigurationSection configurationSection,
             IPacketService<ServerPacket, ClientPacket> packetService)
+            : base(dataTransitService)
         {
             _configurationSection = configurationSection;
             _packetService = packetService;
@@ -38,7 +38,7 @@ namespace SSock.Client.Core.Abstract.Clients
 
         protected abstract Task ProcessUserCommandWithResponseAsync(
             string clientId,
-            string command,
+            (string command, IEnumerable<string> arguments) command,
             ClientPacket receivedData,
             Socket socket);
 
@@ -70,7 +70,7 @@ namespace SSock.Client.Core.Abstract.Clients
 
                     await ProcessUserCommandWithResponseAsync(
                         ClientId,
-                        parsedCommand.command,
+                        parsedCommand,
                         receivedData,
                         socket);
                 }

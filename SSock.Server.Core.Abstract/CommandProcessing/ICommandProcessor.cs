@@ -5,6 +5,6 @@ namespace SSock.Server.Core.Abstract.CommandProcessing
 {
     public interface ICommandProcessor
     {
-        Task<string> ProcessAsync(ServerPacket packet);
+        Task<object> ProcessAsync(ServerPacket packet);
     }
 }

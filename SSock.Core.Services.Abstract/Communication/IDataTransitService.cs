@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace SSock.Core.Services.Abstract.Communication
 {
@@ -11,5 +15,18 @@ namespace SSock.Core.Services.Abstract.Communication
         T ConvertFromByteArray<T>(
             IEnumerable<byte> data,
             int actualDataLength);
+
+        Task<T> ReadDataAsync<T>(
+           Socket socket,
+           int chunkSize,
+           Func<IEnumerable<byte>, T> parsePacket);
+
+        Task SendDataAsync(
+            Socket socket,
+            IEnumerable<byte> data);
+
+        Task SendDataAsync(
+            Socket socket,
+            FileStream fileStream);
     }
 }

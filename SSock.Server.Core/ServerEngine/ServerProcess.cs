@@ -26,6 +26,7 @@ namespace SSock.Server.Core.ServerEngine
             ICommandProcessor commandProcessor,
             IPacketService<ClientPacket, ServerPacket> packetService,
             IDataTransitService dataTransitService)
+            : base(dataTransitService)
         {
             _packetService = packetService;
             _dataTransitService = dataTransitService;
@@ -52,7 +53,7 @@ namespace SSock.Server.Core.ServerEngine
                     }
 
                     Console.WriteLine($"{packet.Command}");
-                    string response = string.Empty;
+                    object response = string.Empty;
 
                     try
                     {
@@ -101,8 +102,8 @@ namespace SSock.Server.Core.ServerEngine
             }
         }
 
-        private bool IsRequestToClose(string serverResponse)
-            => serverResponse.Equals("close", StringComparison.OrdinalIgnoreCase);
+        private bool IsRequestToClose(object serverResponse)
+            => ((string)serverResponse).Equals("close", StringComparison.OrdinalIgnoreCase);
 
         private (bool, string) IsNewClientConnected(ServerPacket packet)
         {

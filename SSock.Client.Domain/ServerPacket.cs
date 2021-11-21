@@ -9,5 +9,7 @@ namespace SSock.Client.Domain
         public string ClientId { get; set; }
 
         public IEnumerable<byte> Payload { get; set; }
+
+        public IEnumerable<int> PayloadParts { get; set; }
     }
 }

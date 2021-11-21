@@ -2,7 +2,6 @@
 using SSock.Client.Core.Abstract.Clients;
 using SSock.Client.Core.Abstract.ResponseProcessing;
 using SSock.Client.Domain;
-using SSock.Core.Commands;
 using SSock.Core.Infrastructure;
 using SSock.Core.Services.Abstract.Commands;
 using SSock.Core.Services.Abstract.Communication;
@@ -48,7 +47,7 @@ namespace SSock.Client.Core.Clients
 
         protected override async Task ProcessUserCommandWithResponseAsync(
             string clientId,
-            string command,
+            (string command, IEnumerable<string> arguments) command,
             ClientPacket receivedData,
             Socket socket)
         {            
@@ -58,22 +57,26 @@ namespace SSock.Client.Core.Clients
                 return;
             }
 
-            var processor = _responseProcessorFactory.CreateResponseProcessor(command);
-            if (processor == default)
+            var processor = _responseProcessorFactory
+                .CreateResponseProcessor(
+                command.command,
+                socket);
+            if (processor != default)
             {
-                throw new NotSupportedException($"{command} command is unsupported");
+                await processor.ProcessAsync(
+                    command.arguments,
+                    receivedData
+                        .Payload
+                        .Take(BitConverter.ToInt16(
+                            receivedData
+                            .Tail
+                            .Skip(2)
+                            .Take(2)
+                            .ToArray())),
+                    clientId);
             }
 
-            processor.Process(receivedData
-                .Payload
-                .Take(BitConverter.ToInt16(
-                    receivedData
-                    .Tail
-                    .Skip(2)
-                    .Take(2)
-                    .ToArray())));
-
-            //var parsedCommand = _commandService.ParseCommand(command.Trim(' ')[0]);
+            // var parsedCommand = _commandService.ParseCommand(command.Trim(' ')[0]);
 
             //if (parsedCommand.command.Equals(
             //    CommandsNames.InitUploadCommand, 

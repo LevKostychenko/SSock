@@ -6,7 +6,8 @@ namespace SSock.Core.Commands.AppCommands
     internal sealed class CloseCommand
         : ICommand
     {
-        public async Task<string> ExecuteAsync(
+        public async Task<object> ExecuteAsync(
+            byte[] tail,
             byte[] args,
             string clientId)
         {

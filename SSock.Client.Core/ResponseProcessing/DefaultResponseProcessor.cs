@@ -3,6 +3,8 @@ using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace SSock.Client.Core.ResponseProcessing
 {
@@ -11,26 +13,42 @@ namespace SSock.Client.Core.ResponseProcessing
     {
         private readonly IServiceProvider _serviceProvider;
 
-        public DefaultResponseProcessor(IServiceProvider serviceProvider)
+        private readonly Socket _socket;
+
+        protected const string UPLOADING_FILE_PATH_KEY = "UPLOADING_FILE_PATH";
+
+        public DefaultResponseProcessor(
+            IServiceProvider serviceProvider,
+            Socket socket)
         {
+            _socket = socket;
+
             _serviceProvider = serviceProvider;
         }
 
-        public void Process(IEnumerable<byte> payload)
+        public async Task<object> ProcessAsync(
+            IEnumerable<string> arguments,
+            IEnumerable<byte> payload,
+            string clientId)
         {
-            var dataTransitService = (IDataTransitService)_serviceProvider
-                .GetService(typeof(IDataTransitService));
-
-            var responseData = dataTransitService
-                .ConvertFromByteArray<TResponse>(
-                    payload, 
-                    payload.Count());
-
-            if (responseData != null 
-                && responseData is string)
+            return await Task.Run(() =>
             {
-                Console.WriteLine("Response: " + responseData);
-            }
+                var dataTransitService = (IDataTransitService)_serviceProvider
+                    .GetService(typeof(IDataTransitService));
+
+                var responseData = dataTransitService
+                    .ConvertFromByteArray<TResponse>(
+                        payload,
+                        payload.Count());
+
+                if (responseData != null
+                    && responseData is string)
+                {
+                    Console.WriteLine("Response: " + responseData);
+                }
+
+                return responseData as object;
+            });
         }
     }
 }

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 namespace SSock.Core.Services.FileUploading
-{
+{   
     internal class FileUploaderService
         : IFileUploaderService
     {
@@ -56,7 +56,7 @@ namespace SSock.Core.Services.FileUploading
                 .Remove(uploadingSessionId);
         }
 
-        public async Task AppendFileAsync(
+        public async Task<long> AppendFileAsync(
             string uploadingSessionId,
             string currentSessionId,
             IEnumerable<byte> data)
@@ -71,7 +71,11 @@ namespace SSock.Core.Services.FileUploading
                 {
                     await fileStream.WriteAsync(data.ToArray(), 0, data.Count());
                 }
+
+                return new FileInfo(filePath).Length;
             }
+
+            return 0;
         }
 
         public async Task<string> SaveFileAsync(

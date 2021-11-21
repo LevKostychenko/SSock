@@ -11,7 +11,7 @@ namespace SSock.Core.Services.Abstract.FileUploading
             string saveLocation,
             string fileName);
 
-        Task AppendFileAsync(
+        Task<long> AppendFileAsync(
             string uploadingSessionId,
             string currentSessionId,
             IEnumerable<byte> data);

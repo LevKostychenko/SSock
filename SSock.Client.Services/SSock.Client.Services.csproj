@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SSock.Client.Domain\SSock.Client.Domain.csproj" />
-    <ProjectReference Include="..\SSock.Core.Services.Abstract\SSock.Core.Services.Abstract.csproj" />
+    <ProjectReference Include="..\SSock.Client.Services.Abstract\SSock.Client.Services.Abstract.csproj" />
     <ProjectReference Include="..\SSock.Core\SSock.Core.csproj" />
   </ItemGroup>
 

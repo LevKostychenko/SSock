@@ -50,8 +50,9 @@ namespace SSock.Client.Services
 
             var tailBytes = BuildTail(
                 commandBytes,
-                clientIdBytes,
-                serverPacket.Payload);
+                clientIdBytes,                
+                serverPacket.Payload,
+                serverPacket.PayloadParts);
 
             commandBytes = _dataTransitService.AppendBytes(commandBytes, COMMAND_LENGTH);
             clientIdBytes = _dataTransitService.AppendBytes(clientIdBytes, CLIENT_ID_LENGTH);
@@ -135,7 +136,8 @@ namespace SSock.Client.Services
         private byte[] BuildTail(
             byte[] commandBytes,
             byte[] clientIdBytes,
-            IEnumerable<byte> payload = null)
+            IEnumerable<byte> payload = null,
+            IEnumerable<int> payloadParts = null)
         {
             unchecked
             {
@@ -143,10 +145,21 @@ namespace SSock.Client.Services
                 var clientIdLength = (short)clientIdBytes.Length;
                 var payloadLength = (short)(payload == null ? 0 : payload.Count());
 
+                var payloadPartsLength = new List<byte>();
+
+                if (payloadParts != null && payloadParts.Count() > 0)
+                {
+                    foreach (var part in payloadParts)
+                    {
+                        payloadPartsLength.AddRange(BitConverter.GetBytes((short)part));
+                    }
+                }
+
                 return _dataTransitService.AppendBytes(
                     BitConverter.GetBytes(commandLength)
                         .Concat(BitConverter.GetBytes(clientIdLength))
                         .Concat(BitConverter.GetBytes(payloadLength))
+                        .Concat(payloadPartsLength)
                         .ToArray(),
                     TAIL_LENGTH);
             }           

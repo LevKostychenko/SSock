@@ -24,7 +24,8 @@ namespace SSock.Core.Commands.AppCommands
             _fileUploaderService = fileUploaderService;
         }
 
-        public async Task<string> ExecuteAsync(
+        public async Task<object> ExecuteAsync(
+            byte[] tail,
             byte[] args,
             string clientId)
             => await _fileUploaderService
@@ -36,7 +37,6 @@ namespace SSock.Core.Commands.AppCommands
                      _configuration.GetSection("filestorage")["savelocation"],
                      string.IsNullOrEmpty(args.BytesToString()) 
                         ? Guid.NewGuid().ToString() 
-                        : args.BytesToString());
-        
+                        : args.BytesToString());        
     }
 }

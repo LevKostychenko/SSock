@@ -16,7 +16,8 @@ namespace SSock.Core.Commands.AppCommands
             _dataTransitService = dataTransitService;
         }
 
-        public async Task<string> ExecuteAsync(
+        public async Task<object> ExecuteAsync(
+            byte[] tail,
             byte[] args,
             string clientId)
         {

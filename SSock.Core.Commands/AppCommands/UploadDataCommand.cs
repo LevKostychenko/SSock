@@ -22,14 +22,18 @@ namespace SSock.Core.Commands.AppCommands
             _fileUploaderService = fileUploaderService;
         }
 
-        public async Task<string> ExecuteAsync(
+        public async Task<object> ExecuteAsync(
+            byte[] tail,
             byte[] args,
             string clientId)
-        {
+        {            
+            var uploadingHashLength = BitConverter.ToInt16(tail.Skip(6).Take(2).ToArray());
+            var uploadingChunkLength = BitConverter.ToInt16(tail.Skip(8).Take(2).ToArray());
+
             (string uploadingHash, IEnumerable<byte> data) =
                 (
-                    args.Take(64).BytesToString(), 
-                    args.TakeLast(960)
+                    args.Take(uploadingHashLength).BytesToString(),
+                    args.TakeLast(960).Take(uploadingChunkLength)
                 );
 
             if (string.IsNullOrEmpty(uploadingHash)
@@ -47,15 +51,15 @@ namespace SSock.Core.Commands.AppCommands
             if (_fileUploaderService
                 .IsUploadingSessionNotCommitted(serverSessionId))
             {
-                await _fileUploaderService.AppendFileAsync(
+                var nextOffset = await _fileUploaderService.AppendFileAsync(
                     uploadingHash, 
                     serverSessionId, 
                     data);
 
-                return Uploaded;
+                return nextOffset;
             }
 
-            return AlreadyCommited;
+            return 0;
         }
     }
 }

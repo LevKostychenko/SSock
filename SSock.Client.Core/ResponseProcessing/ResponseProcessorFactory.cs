@@ -1,5 +1,7 @@
 ﻿using SSock.Client.Core.Abstract.ResponseProcessing;
+using SSock.Core.Commands;
 using System;
+using System.Net.Sockets;
 
 namespace SSock.Client.Core.ResponseProcessing
 {
@@ -14,14 +16,22 @@ namespace SSock.Client.Core.ResponseProcessing
         }
 
         public IResponseProcessor CreateResponseProcessor(
-            string command)
+            string command,
+            Socket socket)
         {
             switch (command)
-            {                
+            {
+                case CommandsNames.InitUploadCommand:
+                    {
+                        return new InitUploadResponseProcessor(
+                            _serviceProvider,
+                            socket);
+                    }
                 default:
                     {
                         return new DefaultResponseProcessor<string>(
-                            _serviceProvider);
+                            _serviceProvider,
+                            socket);
                     }
             }
         }
