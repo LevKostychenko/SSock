@@ -28,5 +28,7 @@ namespace SSock.Core.Services.Abstract.Communication
         Task SendDataAsync(
             Socket socket,
             FileStream fileStream);
+
+        bool IsSocketConnected(Socket socket);
     }
 }

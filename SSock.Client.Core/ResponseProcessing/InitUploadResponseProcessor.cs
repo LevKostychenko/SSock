@@ -89,7 +89,7 @@ namespace SSock.Client.Core.ResponseProcessing
 
                     var packet = packetService.CreatePacket(new ServerPacket
                     {
-                        Command = CommandsNames.UploadDataCommand,
+                        Command = CommandsNames.UPLOAD_DATA_COMMAND,
                         ClientId = clientId,
                         Payload = uploadingService.GetUploadDataPayload(
                             chunk,
@@ -123,7 +123,7 @@ namespace SSock.Client.Core.ResponseProcessing
 
                 var commitPacket = packetService.CreatePacket(new ServerPacket
                 {
-                    Command = CommandsNames.CommitUploadCommand,
+                    Command = CommandsNames.COMMIT_UPLOAD_COMMAND,
                     ClientId = clientId,
                     Payload = Encoding.Unicode.GetBytes(uploadingHash),
                     PayloadParts = new List<int>

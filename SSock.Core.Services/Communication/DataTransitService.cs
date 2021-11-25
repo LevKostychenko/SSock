@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SSock.Core.Services.Communication
@@ -12,6 +13,9 @@ namespace SSock.Core.Services.Communication
     internal class DataTransitService
         : IDataTransitService
     {
+        const int MAX_RETRY_COUNT = 5;
+        const int DELAY_SECONDS = 5 * 1000;
+
         public byte[] AppendBytes(byte[] initialBytes, int count)
         {
             var prevLength = initialBytes.Length;
@@ -79,10 +83,30 @@ namespace SSock.Core.Services.Communication
         {
             var data = new ArraySegment<byte>(new byte[chunkSize]);
             var receivedPacket = new List<byte>();
+            var retryCount = 0;
+            var isReceivedSuccessfully = false;
 
             do
             {
-                var bytes = await socket.ReceiveAsync(data, SocketFlags.None);
+                while (!isReceivedSuccessfully)
+                {
+                    try
+                    {
+                        await socket.ReceiveAsync(data, SocketFlags.None);
+                        isReceivedSuccessfully = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        retryCount++;
+                        Thread.Sleep(DELAY_SECONDS);
+
+                        if (retryCount > MAX_RETRY_COUNT)
+                        {
+                            // Reconnect this client;
+                            throw ex;
+                        }
+                    }
+                }
 
                 if (data.Array != null)
                 {
@@ -105,6 +129,9 @@ namespace SSock.Core.Services.Communication
                     SocketFlags.None);
             }
         }
+
+        public bool IsSocketConnected(Socket socket)
+            => !(socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0);        
 
         public async Task SendDataAsync(
             Socket socket,

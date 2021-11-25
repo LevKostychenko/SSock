@@ -1,6 +1,6 @@
 {
   "listener": {
-    "address": "127.0.0.1",
+    "address": "25.88.148.236",
     "port": "8888"
   },
   "filestorage": {

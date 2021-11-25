@@ -110,7 +110,7 @@ namespace SSock.Client.Core.Abstract.Clients
                        _packetService.CreatePacket(
                            new ServerPacket
                            {
-                               Command = CommandsNames.InitCommand,
+                               Command = CommandsNames.INIT_COMMAND,
                                ClientId = ClientId  
                            }));
 

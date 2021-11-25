@@ -41,9 +41,8 @@ namespace SSock.Server.Core.ServerEngine
             try
             {
                 while (true)
-                {
-                    var packet = await ReadDataAsync(socket);
-
+                {                    
+                    var packet = await ReadDataAsync(socket);                    
                     var (isNewClient, clientId) = IsNewClientConnected(packet);
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
@@ -108,7 +107,7 @@ namespace SSock.Server.Core.ServerEngine
         private (bool, string) IsNewClientConnected(ServerPacket packet)
         {
             if (packet.Command.Equals(
-                CommandsNames.InitCommand,
+                CommandsNames.INIT_COMMAND,
                 StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrEmpty(packet.ClientId))
             {

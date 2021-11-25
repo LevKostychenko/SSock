@@ -21,7 +21,7 @@ namespace SSock.Client.Core.ResponseProcessing
         {
             switch (command.ToUpper())
             {
-                case CommandsNames.InitUploadCommand:
+                case CommandsNames.INIT_UPLOAD_COMMAND:
                     {
                         return new InitUploadResponseProcessor(
                             _serviceProvider,

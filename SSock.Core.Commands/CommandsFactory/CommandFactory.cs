@@ -25,37 +25,37 @@ namespace SSock.Core.Commands.CommandsFactory
 
             switch (command)
             {
-                case CommandsNames.CloseCommand:
+                case CommandsNames.CLOSE_COMMAND:
                     {
                         return (CloseCommand)abstractCommnds
                             .Where(c => c is CloseCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.EchoCommand:
+                case CommandsNames.ECHO_COMMAND:
                     {
                         return (EchoCommand)abstractCommnds
                             .Where(c => c is EchoCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.TimeCommand:
+                case CommandsNames.TIME_COMMAND:
                     {
                         return (TimeCommand)abstractCommnds
                             .Where(c => c is TimeCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.InitUploadCommand:
+                case CommandsNames.INIT_UPLOAD_COMMAND:
                     {
                         return (InitUploadCommand)abstractCommnds
                             .Where(c => c is InitUploadCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.UploadDataCommand:
+                case CommandsNames.UPLOAD_DATA_COMMAND:
                     {
                         return (UploadDataCommand)abstractCommnds
                             .Where(c => c is UploadDataCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.CommitUploadCommand:
+                case CommandsNames.COMMIT_UPLOAD_COMMAND:
                     {
                         return (CommitUploadCommand)abstractCommnds
                             .Where(c => c is CommitUploadCommand)

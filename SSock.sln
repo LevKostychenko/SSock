@@ -43,7 +43,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSock.Client.Services", "SS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSock.Server.Services", "SSock.Server.Services\SSock.Server.Services.csproj", "{6520D690-7CE9-4CDB-9562-C317A80541F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSock.Client.Services.Abstract", "SSock.Client.Services.Abstract\SSock.Client.Services.Abstract.csproj", "{05073842-547F-451D-8623-A349FBFD0B25}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSock.Client.Services.Abstract", "SSock.Client.Services.Abstract\SSock.Client.Services.Abstract.csproj", "{05073842-547F-451D-8623-A349FBFD0B25}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -145,7 +145,7 @@ Global
 		{80812CA7-F1D8-4BDD-BA97-8A022020BA62} = {1C96B1D3-5DC7-4548-9845-39A5060E5ECB}
 		{042E04D3-BB7F-4E15-B9A3-0F43BA0232C8} = {1C96B1D3-5DC7-4548-9845-39A5060E5ECB}
 		{6520D690-7CE9-4CDB-9562-C317A80541F5} = {C568626C-1DA1-4B8A-8A44-5FAA2FF4D1BC}
-		{05073842-547F-451D-8623-A349FBFD0B25} = {1C96B1D3-5DC7-4548-9845-39A5060E5ECB}
+		{05073842-547F-451D-8623-A349FBFD0B25} = {B4CE6ED0-83E2-44CE-A99C-0B4BCF22637A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C1E57A40-360A-4374-BF2E-3F581DAA8644}

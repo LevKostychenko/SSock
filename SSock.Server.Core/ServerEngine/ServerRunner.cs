@@ -37,9 +37,10 @@ namespace SSock.Server.Core.ServerEngine
                 listenSocket.Listen(20);
                
                 Console.WriteLine("Waiting for connections...");
+
                 while (true)
                 {
-                    var socket = listenSocket.Accept();                
+                    var socket = listenSocket.Accept();
                     await _serverProcess.ProcessAsync(socket, StopServer);
                 }
 
