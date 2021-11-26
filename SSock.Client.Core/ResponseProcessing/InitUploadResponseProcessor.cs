@@ -40,13 +40,11 @@ namespace SSock.Client.Core.ResponseProcessing
             string clientId)
         {
             var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
-                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
-            var uploadingService = (IUploadingService)_serviceProvider
-                    .GetService(typeof(IUploadingService));
-            var config = (IConfiguration)_serviceProvider
-                   .GetService(typeof(IConfiguration));
+                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));            
             var dataTransitService = (IDataTransitService)_serviceProvider
                    .GetService(typeof(IDataTransitService));
+            var config = (IConfiguration)_serviceProvider
+               .GetService(typeof(IConfiguration));
 
             var uploadingHash = dataTransitService
                     .ConvertFromByteArray<string>(
@@ -71,14 +69,114 @@ namespace SSock.Client.Core.ResponseProcessing
                 .GetOrCreateAsync(UPLOADING_FILE_PATH_KEY, filePath);            
 
             var chunkSize = Int32.Parse(config["chunkSize"]);
+
+            await UploadFileAsync(
+                clientId, 
+                uploadingHash, 
+                filePath,
+                chunkSize);
+
+            var commitResponse = await CommitUploadingAsync(
+                clientId,
+                uploadingHash,
+                chunkSize);            
+            
+            if (dataTransitService
+                .ConvertFromByteArray<int>(commitResponse.Payload, commitResponse.Payload.Length) == 1)
+            {
+                Console.WriteLine("Uploaded");
+            }
+            else
+            {
+                Console.WriteLine("Cannot commit");
+            }
+
+            return "Uploaded";
+        }
+
+        private IEnumerable<byte> GetUploadPacket(
+            string clientId, 
+            string uploadingHash,
+            byte[] chunk)
+        {
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+            var uploadingService = (IUploadingService)_serviceProvider
+                    .GetService(typeof(IUploadingService));
+
+            return packetService.CreatePacket(new ServerPacket
+            {
+                Command = CommandsNames.UPLOAD_DATA_COMMAND,
+                ClientId = clientId,
+                Payload = uploadingService.GetUploadDataPayload(
+                            chunk,
+                            uploadingHash),
+                PayloadParts = new List<int>
+                        {
+                            Encoding.Unicode.GetByteCount(uploadingHash),
+                            chunk.Length
+                        }
+            });
+        }
+
+        private IEnumerable<byte> GetCommitPacket(
+            string clientId,
+            string uploadingHash)
+        {
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+
+            return packetService.CreatePacket(new ServerPacket
+            {
+                Command = CommandsNames.COMMIT_UPLOAD_COMMAND,
+                ClientId = clientId,
+                Payload = Encoding.Unicode.GetBytes(uploadingHash),
+                PayloadParts = new List<int>
+                        {
+                            Encoding.Unicode.GetByteCount(uploadingHash)
+                        }
+            });
+        }
+
+        private async Task<ClientPacket> CommitUploadingAsync(
+            string clientId,
+            string uploadingHash,
+            int chunkSize)
+        {
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+            var dataTransitService = (IDataTransitService)_serviceProvider
+               .GetService(typeof(IDataTransitService));
+
+            var commitPacket = GetCommitPacket(clientId, uploadingHash);
+
+            await dataTransitService.SendDataAsync(_socket, commitPacket);
+            return await dataTransitService
+                    .ReadDataAsync(
+                    _socket,
+                    chunkSize,
+                    p => packetService.ParsePacket(p));
+        }
+
+        private async Task UploadFileAsync(
+            string clientId,
+            string uploadingHash,
+            string filePath,
+            int chunkSize)
+        {
+            var dataTransitService = (IDataTransitService)_serviceProvider
+               .GetService(typeof(IDataTransitService));
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+
             var chunk = new byte[chunkSize];
 
+            using var progress = new ProgressBar();
             using (var fileReader = new FileStream(
-                filePath, 
-                FileMode.Open, 
+                filePath,
+                FileMode.Open,
                 FileAccess.Read))
             {
-                using var progress = new ProgressBar();
                 using var reader = new BinaryReader(fileReader);
                 int bytesToRead = (int)fileReader.Length;
 
@@ -87,19 +185,7 @@ namespace SSock.Client.Core.ResponseProcessing
                     chunk = reader.ReadBytes(chunkSize);
                     bytesToRead -= chunkSize;
 
-                    var packet = packetService.CreatePacket(new ServerPacket
-                    {
-                        Command = CommandsNames.UPLOAD_DATA_COMMAND,
-                        ClientId = clientId,
-                        Payload = uploadingService.GetUploadDataPayload(
-                            chunk,
-                            uploadingHash),
-                        PayloadParts = new List<int>
-                        {
-                            Encoding.Unicode.GetByteCount(uploadingHash),
-                            chunk.Length
-                        }
-                    });
+                    var packet = GetUploadPacket(clientId, uploadingHash, chunk);
 
                     await dataTransitService.SendDataAsync(_socket, packet);
                     var response = await dataTransitService
@@ -116,42 +202,11 @@ namespace SSock.Client.Core.ResponseProcessing
                         dataTransitService) == 0)
                     {
                         Console.WriteLine("Already uploaded");
-                        return "Already uploaded";
+                        return;
                     }
 
                 } while (bytesToRead > 0);
-
-                var commitPacket = packetService.CreatePacket(new ServerPacket
-                {
-                    Command = CommandsNames.COMMIT_UPLOAD_COMMAND,
-                    ClientId = clientId,
-                    Payload = Encoding.Unicode.GetBytes(uploadingHash),
-                    PayloadParts = new List<int>
-                        {
-                            Encoding.Unicode.GetByteCount(uploadingHash)
-                        }
-                });
-
-                await dataTransitService.SendDataAsync(_socket, commitPacket);
-                var commitResponse = await dataTransitService
-                        .ReadDataAsync(
-                        _socket,
-                        chunkSize,
-                        p => packetService.ParsePacket(p));
-
-                if (dataTransitService
-                    .ConvertFromByteArray<int>(commitResponse.Payload, commitResponse.Payload.Length) == 1)
-                {
-                    progress.Report((double)1);
-                    Console.WriteLine("Uploaded");
-                }
-                else
-                {
-                    Console.WriteLine("Cannot commit");
-                }
             }
-
-            return "Uploaded";
         }
 
         private long GetFileNextOffset(

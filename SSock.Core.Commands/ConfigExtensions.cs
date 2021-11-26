@@ -16,6 +16,7 @@ namespace SSock.Core.Commands
                 .AddTransient<ICommand, TimeCommand>()
                 .AddTransient<ICommand, InitUploadCommand>()
                 .AddTransient<ICommand, CommitUploadCommand>()
+                .AddTransient<ICommand, ContinueUploadCommand>()            
                 .AddTransient<ICommand, UploadDataCommand>();
     }
 }
