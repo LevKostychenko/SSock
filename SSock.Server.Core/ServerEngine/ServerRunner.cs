@@ -29,7 +29,7 @@ namespace SSock.Server.Core.ServerEngine
             var section = _configuration.GetSection("listener");
             var (address, port) = (section["address"], section["port"]);
             var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var ipPoint = new IPEndPoint(IPAddress.Parse(address), Int32.Parse(port));
+            var ipPoint = new IPEndPoint(IPAddress.Any, Int32.Parse(port));
 
             try
             {

@@ -1,10 +1,15 @@
 ﻿using SSock.Client.Domain;
+using SSock.Core.Commands;
+using SSock.Core.Infrastructure;
 using SSock.Core.Infrastructure.Extensions;
 using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SSock.Client.Services
 {
@@ -19,6 +24,8 @@ namespace SSock.Client.Services
         private const int STATUS_CHUNK_LENGTH = 64;
         private const int PAYLOAD_CHUNK_LENGTH = 1024;
         private const int TAIL_CHUNK_LENGTH = 64;
+
+        private const int READ_CHUNK_SIZE = 2;
 
         private readonly IDataTransitService _dataTransitService;
 
@@ -164,7 +171,7 @@ namespace SSock.Client.Services
                         .Concat(payloadPartsLength)
                         .ToArray(),
                     TAIL_LENGTH);
-            }           
-        }
+            }
+        }        
     }
 }

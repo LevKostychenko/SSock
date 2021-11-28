@@ -4,12 +4,14 @@ using SSock.Client.Domain;
 using SSock.Client.Services.Abstract;
 using SSock.Core.Abstract.Infrastructure;
 using SSock.Core.Commands;
+using SSock.Core.Infrastructure;
 using SSock.Core.Infrastructure.Session;
 using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +22,7 @@ namespace SSock.Client.Core.ResponseProcessing
         : IResponseProcessor
     {
         protected const string UPLOADING_FILE_PATH_KEY = "UPLOADING_FILE_PATH";
+        private const int READ_CHUNK_SIZE = 2;
 
         private readonly IServiceProvider _serviceProvider;
 
@@ -33,14 +36,11 @@ namespace SSock.Client.Core.ResponseProcessing
             _socket = socket;
         }
 
-        // TODO: Refactor this method
-        public new async Task<object> ProcessAsync(
+        public async Task<object> ProcessAsync(
             IEnumerable<string> arguments,
             IEnumerable<byte> payload,
             string clientId)
         {
-            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
-                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));            
             var dataTransitService = (IDataTransitService)_serviceProvider
                    .GetService(typeof(IDataTransitService));
             var config = (IConfiguration)_serviceProvider
@@ -66,21 +66,21 @@ namespace SSock.Client.Core.ResponseProcessing
             var newSessionId = ClientSession.InitNewSession(clientId);
             await ClientSession
                 .SessionsCache[newSessionId]
-                .GetOrCreateAsync(UPLOADING_FILE_PATH_KEY, filePath);            
+                .GetOrCreateAsync(UPLOADING_FILE_PATH_KEY, filePath);
 
             var chunkSize = Int32.Parse(config["chunkSize"]);
 
             await UploadFileAsync(
-                clientId, 
-                uploadingHash, 
+                clientId,
+                uploadingHash,
                 filePath,
                 chunkSize);
 
             var commitResponse = await CommitUploadingAsync(
                 clientId,
                 uploadingHash,
-                chunkSize);            
-            
+                chunkSize);
+
             if (dataTransitService
                 .ConvertFromByteArray<int>(commitResponse.Payload, commitResponse.Payload.Length) == 1)
             {
@@ -95,7 +95,7 @@ namespace SSock.Client.Core.ResponseProcessing
         }
 
         private IEnumerable<byte> GetUploadPacket(
-            string clientId, 
+            string clientId,
             string uploadingHash,
             byte[] chunk)
         {
@@ -144,9 +144,9 @@ namespace SSock.Client.Core.ResponseProcessing
             int chunkSize)
         {
             var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
-                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+                .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
             var dataTransitService = (IDataTransitService)_serviceProvider
-               .GetService(typeof(IDataTransitService));
+                .GetService(typeof(IDataTransitService));
 
             var commitPacket = GetCommitPacket(clientId, uploadingHash);
 
@@ -165,9 +165,11 @@ namespace SSock.Client.Core.ResponseProcessing
             int chunkSize)
         {
             var dataTransitService = (IDataTransitService)_serviceProvider
-               .GetService(typeof(IDataTransitService));
+                .GetService(typeof(IDataTransitService));
             var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
-                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+                .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+            var config = (IConfiguration)_serviceProvider
+                .GetService(typeof(IConfiguration));
 
             var chunk = new byte[chunkSize];
 
@@ -188,11 +190,31 @@ namespace SSock.Client.Core.ResponseProcessing
                     var packet = GetUploadPacket(clientId, uploadingHash, chunk);
 
                     await dataTransitService.SendDataAsync(_socket, packet);
-                    var response = await dataTransitService
-                        .ReadDataAsync(
-                        _socket,
-                        chunkSize,
-                        p => packetService.ParsePacket(p));
+                    ClientPacket response = null;
+
+                    try
+                    {
+                        response = await dataTransitService
+                            .ReadDataAsync(
+                            _socket,
+                            chunkSize,
+                            p => packetService.ParsePacket(p));
+                    }
+                    catch (Exception ex)
+                    {
+                        var (port, address) = (
+                             config["port"],
+                             config["address"]);
+
+                        var ipPoint = new IPEndPoint(
+                            IPAddress.Parse(address),
+                            Int32.Parse(port));
+
+                        await ConnectSocketAsync(
+                            _socket,
+                            ipPoint,
+                            clientId);
+                    }
 
                     progress.Report(
                         (double)Decimal.Divide(fileReader.Length - bytesToRead, fileReader.Length));
@@ -207,6 +229,41 @@ namespace SSock.Client.Core.ResponseProcessing
 
                 } while (bytesToRead > 0);
             }
+        }
+        private async Task<bool> ConnectSocketAsync(
+            Socket socket,
+            IPEndPoint ipPoint,
+            string clientId)
+        {
+            var dataTransitService = (IDataTransitService)_serviceProvider
+               .GetService(typeof(IDataTransitService));
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+
+            Console.WriteLine("Connection to the server...");
+            socket.Connect(ipPoint);
+
+            await dataTransitService.SendDataAsync(
+                        socket,
+                        packetService.CreatePacket(
+                            new ServerPacket
+                            {
+                                Command = CommandsNames.INIT_COMMAND,
+                                ClientId = clientId
+                            }));
+
+            var receivedData = await dataTransitService.ReadDataAsync(
+                socket,
+                READ_CHUNK_SIZE,
+                x => packetService.ParsePacket(x));
+
+            if (receivedData.Status == Statuses.Connected)
+            {
+                Console.WriteLine("Connected successfully");
+                return true;
+            }
+
+            return false;
         }
 
         private long GetFileNextOffset(

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
@@ -13,8 +14,8 @@ namespace SSock.Core.Services.Communication
     internal class DataTransitService
         : IDataTransitService
     {
-        const int MAX_RETRY_COUNT = 5;
-        const int DELAY_SECONDS = 5 * 1000;
+        const int MAX_RETRY_COUNT = 3;
+        const int DELAY_SECONDS = 2 * 1000;
 
         public byte[] AppendBytes(byte[] initialBytes, int count)
         {
@@ -84,10 +85,11 @@ namespace SSock.Core.Services.Communication
             var data = new ArraySegment<byte>(new byte[chunkSize]);
             var receivedPacket = new List<byte>();
             var retryCount = 0;
-            var isReceivedSuccessfully = false;
 
             do
             {
+                var isReceivedSuccessfully = false;
+
                 while (!isReceivedSuccessfully)
                 {
                     try
@@ -131,7 +133,7 @@ namespace SSock.Core.Services.Communication
         }
 
         public bool IsSocketConnected(Socket socket)
-            => !(socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0);        
+            => !(socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0);
 
         public async Task SendDataAsync(
             Socket socket,
