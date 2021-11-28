@@ -49,7 +49,7 @@ namespace SSock.Client.Core.Clients
             string clientId,
             (string command, IEnumerable<string> arguments) command,
             ClientPacket receivedData,
-            Socket socket)
+            Ref<Socket> socket)
         {            
             if (receivedData.Status != Statuses.Ok)
             {
@@ -59,8 +59,8 @@ namespace SSock.Client.Core.Clients
 
             var processor = _responseProcessorFactory
                 .CreateResponseProcessor(
-                command.command,
-                socket);
+                    command.command,
+                    socket);
             if (processor != default)
             {
                 await processor.ProcessAsync(

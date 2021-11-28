@@ -40,16 +40,16 @@ namespace SSock.Client.Core.Abstract.Clients
             string clientId,
             (string command, IEnumerable<string> arguments) command,
             ClientPacket receivedData,
-            Socket socket);
+            Ref<Socket> socket);
 
         public virtual async Task RunAsync()
         {
             IsRunning = true;
-            Socket socket = null;
+            var socket = new Ref<Socket>();
 
             try
             {                
-                var ipPoint = InitSocket(ref socket);
+                var ipPoint = InitSocket(socket);
                 await ConnectAsync(socket, ipPoint);
 
                 while (IsRunning)
@@ -86,8 +86,8 @@ namespace SSock.Client.Core.Abstract.Clients
             {
                 if (socket != null)
                 {
-                    socket.Shutdown(SocketShutdown.Both);
-                    socket.Close();
+                    socket.Value.Shutdown(SocketShutdown.Both);
+                    socket.Value.Close();
                 }
             }
         }
@@ -121,7 +121,7 @@ namespace SSock.Client.Core.Abstract.Clients
             }
         }
 
-        private IPEndPoint InitSocket(ref Socket socket)
+        private IPEndPoint InitSocket(Ref<Socket> socket)
         {
             var (port, address) = (
                     _configurationSection["port"],
@@ -130,7 +130,7 @@ namespace SSock.Client.Core.Abstract.Clients
             var ipPoint = new IPEndPoint(
                 IPAddress.Parse(address),
                 Int32.Parse(port));
-            socket = new Socket(
+            socket.Value = new Socket(
                 AddressFamily.InterNetwork, 
                 SocketType.Stream, ProtocolType.Tcp);
 

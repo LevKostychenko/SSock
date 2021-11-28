@@ -1,4 +1,5 @@
 ﻿using SSock.Client.Core.Abstract.ResponseProcessing;
+using SSock.Core.Infrastructure;
 using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ namespace SSock.Client.Core.ResponseProcessing
     {
         private readonly IServiceProvider _serviceProvider;
 
-        private readonly Socket _socket;
+        private readonly Ref<Socket> _socket;
 
         public DefaultResponseProcessor(
             IServiceProvider serviceProvider,

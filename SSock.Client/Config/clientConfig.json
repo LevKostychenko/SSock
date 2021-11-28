@@ -1,9 +1,9 @@
 {
   "server": {
-    "address": "127.0.0.1",
+    "address": "25.88.148.236",
     "port": "8888"
   },
 
   "chunkSize": 896
-  // init_upload C:\Users\Leu.Kastsiuchenka\Downloads\3dmixedreality_71.zip
+  // init_upload C:\Users\Leu.Kastsiuchenka\Downloads\video1.mp4
 }

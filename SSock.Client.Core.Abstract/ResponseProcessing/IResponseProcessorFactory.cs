@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using SSock.Core.Infrastructure;
+using System.Net.Sockets;
 
 namespace SSock.Client.Core.Abstract.ResponseProcessing
 {
@@ -6,6 +7,6 @@ namespace SSock.Client.Core.Abstract.ResponseProcessing
     {
         IResponseProcessor CreateResponseProcessor(
             string command,
-            Socket socket);
+            Ref<Socket> socket);
     }
 }

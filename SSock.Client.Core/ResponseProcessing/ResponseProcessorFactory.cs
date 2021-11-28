@@ -1,5 +1,6 @@
 ﻿using SSock.Client.Core.Abstract.ResponseProcessing;
 using SSock.Core.Commands;
+using SSock.Core.Infrastructure;
 using System;
 using System.Net.Sockets;
 
@@ -17,7 +18,7 @@ namespace SSock.Client.Core.ResponseProcessing
 
         public IResponseProcessor CreateResponseProcessor(
             string command,
-            Socket socket)
+            Ref<Socket> socket)
         {
             switch (command.ToUpper())
             {

@@ -26,11 +26,11 @@ namespace SSock.Client.Core.ResponseProcessing
 
         private readonly IServiceProvider _serviceProvider;
 
-        private readonly Socket _socket;
+        private Ref<Socket> _socket;
 
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
-            Socket socket)
+            Ref<Socket> socket)
         {
             _serviceProvider = serviceProvider;
             _socket = socket;
@@ -168,8 +168,6 @@ namespace SSock.Client.Core.ResponseProcessing
                 .GetService(typeof(IDataTransitService));
             var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
-            var config = (IConfiguration)_serviceProvider
-                .GetService(typeof(IConfiguration));
 
             var chunk = new byte[chunkSize];
 
@@ -196,24 +194,19 @@ namespace SSock.Client.Core.ResponseProcessing
                     {
                         response = await dataTransitService
                             .ReadDataAsync(
-                            _socket,
-                            chunkSize,
-                            p => packetService.ParsePacket(p));
+                                _socket,
+                                chunkSize,
+                                p => packetService.ParsePacket(p));
                     }
                     catch (Exception ex)
                     {
-                        var (port, address) = (
-                             config["port"],
-                             config["address"]);
-
-                        var ipPoint = new IPEndPoint(
-                            IPAddress.Parse(address),
-                            Int32.Parse(port));
-
-                        await ConnectSocketAsync(
-                            _socket,
-                            ipPoint,
-                            clientId);
+                        await ReconnectSocketAsync(clientId);
+                        await dataTransitService.SendDataAsync(_socket, packet);
+                        response = await dataTransitService
+                            .ReadDataAsync(
+                                _socket,
+                                chunkSize,
+                                p => packetService.ParsePacket(p));
                     }
 
                     progress.Report(
@@ -230,6 +223,33 @@ namespace SSock.Client.Core.ResponseProcessing
                 } while (bytesToRead > 0);
             }
         }
+
+        private async Task ReconnectSocketAsync(
+            string clientId)
+        {
+            var config = (IConfiguration)_serviceProvider
+                .GetService(typeof(IConfiguration));
+
+            var (port, address) = (
+                config.GetSection("server")["port"],
+                config.GetSection("server")["address"]);
+
+            var ipPoint = new IPEndPoint(
+                IPAddress.Parse(address),
+                Int32.Parse(port));
+
+            var newSocket = new Socket(
+                AddressFamily.InterNetwork,
+                SocketType.Stream, ProtocolType.Tcp);
+
+            await ConnectSocketAsync(
+                newSocket,
+                ipPoint,
+                clientId);
+
+            _socket.Value = newSocket;
+        }
+
         private async Task<bool> ConnectSocketAsync(
             Socket socket,
             IPEndPoint ipPoint,
