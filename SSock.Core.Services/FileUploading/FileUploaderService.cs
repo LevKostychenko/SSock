@@ -43,6 +43,27 @@ namespace SSock.Core.Services.FileUploading
             return sessionKey != default;
         }
 
+        public long GetUploadedBytes(string currentSessionId)
+        {
+            var uploadingSessionId = ServerSession
+                   .SessionsCache[currentSessionId]
+                   .Get<string>(UPLOADING_SESSION_KEY);
+
+            if (!string.IsNullOrEmpty(uploadingSessionId))
+            {
+                var filePath = ServerSession
+                    .SessionsCache[currentSessionId]
+                    .Get<string>(uploadingSessionId);
+
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    return new FileInfo(filePath).Length;
+                }            
+            }
+
+            return 0;
+        }
+
         public void CommitUploadingSession(
             string currentSessionId,
             string uploadingSessionId)
@@ -65,7 +86,7 @@ namespace SSock.Core.Services.FileUploading
                 .SessionsCache[currentSessionId]
                 .Get<string>(uploadingSessionId);
 
-            if (filePath != default)
+            if (!string.IsNullOrEmpty(filePath))
             {
                 using (var fileStream = new FileStream(filePath, FileMode.Append))
                 {

@@ -61,10 +61,10 @@ namespace SSock.Core.Commands.CommandsFactory
                             .Where(c => c is CommitUploadCommand)
                             .FirstOrDefault();
                     }
-                case CommandsNames.CONTINUE_UPLOAD_COMMAND:
+                case CommandsNames.GET_UPLODED_BYTES_COMMAND:
                     {
-                        return (ContinueUploadCommand)abstractCommnds
-                            .Where(c => c is ContinueUploadCommand)
+                        return (GetUploadedBytesCommand)abstractCommnds
+                            .Where(c => c is GetUploadedBytesCommand)
                             .FirstOrDefault();
                     }
                 default:

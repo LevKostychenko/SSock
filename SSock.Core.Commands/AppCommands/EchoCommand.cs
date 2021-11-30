@@ -20,19 +20,18 @@ namespace SSock.Core.Commands.AppCommands
             byte[] tail,
             byte[] args,
             string clientId)
-        {
-            return await Task.Run(() => {
-                if (args.Length > 0)
+        => await Task.Run(() => 
                 {
-                    var commandArgs = _dataTransitService.ConvertFromByteArray<List<string>>(
-                        args,
-                        args.Length);
+                    if (args.Length > 0)
+                    {
+                        var commandArgs = _dataTransitService.ConvertFromByteArray<List<string>>(
+                            args,
+                            args.Length);
 
-                    return string.Join(' ', commandArgs);
-                }
+                        return string.Join(' ', commandArgs);
+                    }
 
-                return string.Empty;
-            });
-        }
+                    return string.Empty;
+                });           
     }
 }

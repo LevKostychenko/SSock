@@ -25,6 +25,8 @@ namespace SSock.Core.Services.Abstract.FileUploading
 
         bool IsUploadingSessionNotCommitted(string currentSessionId);
 
+        long GetUploadedBytes(string currentSessionId);
+
         void CommitUploadingSession(
             string currentSessionId,
             string uploadingSessionId);

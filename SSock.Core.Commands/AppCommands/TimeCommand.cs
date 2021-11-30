@@ -24,23 +24,21 @@ namespace SSock.Core.Commands.AppCommands
             byte[] tail,
             byte[] args,
             string clientId)
-        {
-            return await Task.Run(() =>
-            {
-                if (args.Length > 0)
+        => await Task.Run(() =>
                 {
-                    var commandArgs = _dataTransitService.ConvertFromByteArray<List<string>>(
-                        args,
-                        args.Length);
-
-                    if (commandArgs.First() == UtcArg)
+                    if (args.Length > 0)
                     {
-                        return DateTime.UtcNow.ToString();
-                    }
-                }
+                        var commandArgs = _dataTransitService.ConvertFromByteArray<List<string>>(
+                            args,
+                            args.Length);
 
-                return DateTime.Now.ToString();
-            });
-        }
+                        if (commandArgs.First() == UtcArg)
+                        {
+                            return DateTime.UtcNow.ToString();
+                        }
+                    }
+
+                    return DateTime.Now.ToString();
+                });      
     }
 }

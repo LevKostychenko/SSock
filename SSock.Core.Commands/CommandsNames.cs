@@ -12,7 +12,7 @@
         public const string INIT_UPLOAD_COMMAND = "INIT_UPLOAD";
         public const string UPLOAD_DATA_COMMAND = "UPLOAD_DATA";
         public const string COMMIT_UPLOAD_COMMAND = "COMMIT_UPLOAD";
-        public const string CONTINUE_UPLOAD_COMMAND = "CONTINUE_UPLOAD";
+        public const string GET_UPLODED_BYTES_COMMAND = "GET_UPLODED_BYTES";
 
         #endregion
     }
