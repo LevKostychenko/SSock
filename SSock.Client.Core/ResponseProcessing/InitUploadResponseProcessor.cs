@@ -178,7 +178,7 @@ namespace SSock.Client.Core.ResponseProcessing
                 FileAccess.Read))
             {
                 using var reader = new BinaryReader(fileReader);
-                int bytesToRead = (int)fileReader.Length;
+                long bytesToRead = fileReader.Length;
 
                 do
                 {
@@ -201,15 +201,27 @@ namespace SSock.Client.Core.ResponseProcessing
                     catch (Exception ex)
                     {
                         await ReconnectSocketAsync(clientId);
-                        var uploadingBytesPacket = GetUploadingBytesPacket();
-                        await dataTransitService.SendDataAsync(_socket, packet);
-
-                        await dataTransitService.SendDataAsync(_socket, packet);
+                        var uploadingBytesPacket = GetUploadingBytesPacket(clientId);
+                        await dataTransitService.SendDataAsync(_socket, uploadingBytesPacket);
                         response = await dataTransitService
                             .ReadDataAsync(
                                 _socket,
                                 chunkSize,
                                 p => packetService.ParsePacket(p));
+
+                        var uploadedBytes = GetFileNextOffset(
+                            response.Payload, 
+                            dataTransitService);
+
+                        if (uploadedBytes == 0)
+                        {
+                            // already uploaded
+                            break;
+                        }
+
+                        reader.BaseStream.Seek(uploadedBytes, SeekOrigin.Begin);
+                        bytesToRead = (int)fileReader.Length - uploadedBytes;
+                        continue;
                     }
 
                     progress.Report(
@@ -227,20 +239,16 @@ namespace SSock.Client.Core.ResponseProcessing
             }
         }
 
-        private IEnumerable<byte> GetUploadingBytesPacket()
+        private IEnumerable<byte> GetUploadingBytesPacket(
+            string clientId)
         {
             var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
 
             return packetService.CreatePacket(new ServerPacket
             {
-                Command = CommandsNames.,
+                Command = CommandsNames.GET_UPLODED_BYTES_COMMAND,
                 ClientId = clientId,
-                Payload = Encoding.Unicode.GetBytes(uploadingHash),
-                PayloadParts = new List<int>
-                        {
-                            Encoding.Unicode.GetByteCount(uploadingHash)
-                        }
             });
         }
 
