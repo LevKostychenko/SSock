@@ -201,6 +201,9 @@ namespace SSock.Client.Core.ResponseProcessing
                     catch (Exception ex)
                     {
                         await ReconnectSocketAsync(clientId);
+                        var uploadingBytesPacket = GetUploadingBytesPacket();
+                        await dataTransitService.SendDataAsync(_socket, packet);
+
                         await dataTransitService.SendDataAsync(_socket, packet);
                         response = await dataTransitService
                             .ReadDataAsync(
@@ -222,6 +225,23 @@ namespace SSock.Client.Core.ResponseProcessing
 
                 } while (bytesToRead > 0);
             }
+        }
+
+        private IEnumerable<byte> GetUploadingBytesPacket()
+        {
+            var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
+                .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+
+            return packetService.CreatePacket(new ServerPacket
+            {
+                Command = CommandsNames.,
+                ClientId = clientId,
+                Payload = Encoding.Unicode.GetBytes(uploadingHash),
+                PayloadParts = new List<int>
+                        {
+                            Encoding.Unicode.GetByteCount(uploadingHash)
+                        }
+            });
         }
 
         private async Task ReconnectSocketAsync(
