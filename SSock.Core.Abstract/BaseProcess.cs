@@ -1,7 +1,6 @@
 ﻿using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -22,16 +21,13 @@ namespace SSock.Core.Abstract
         protected void LogError(string error)
             => Console.WriteLine("Error: " + error);        
 
-        protected async Task SendDataAsync(Socket socket, IEnumerable<byte> data)
-            => await _dataTransitService.SendDataAsync(socket, data);
+        protected async Task SendDataAsync(UdpClient client, IEnumerable<byte> data)
+            => await _dataTransitService.SendDataAsync(client, data);
 
-        protected async Task SendDataAsync(Socket socket, FileStream fileStream)
-            => await _dataTransitService.SendDataAsync(socket, fileStream);
-
-        protected async Task<T> ReadDataAsync(Socket socket)
+        protected async Task<T> ReadDataAsync(UdpClient client)
             => await _dataTransitService
                     .ReadDataAsync(
-                        socket, 
+                        client, 
                         READ_CHUNK_SIZE, 
                         x => ParsePacket(x));                    
     }

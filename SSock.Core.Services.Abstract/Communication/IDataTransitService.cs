@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -17,17 +16,13 @@ namespace SSock.Core.Services.Abstract.Communication
             int actualDataLength);
 
         Task<T> ReadDataAsync<T>(
-           Socket socket,
+           UdpClient client,
            int chunkSize,
            Func<IEnumerable<byte>, T> parsePacket);
 
         Task SendDataAsync(
-            Socket socket,
+            UdpClient client,
             IEnumerable<byte> data);
-
-        Task SendDataAsync(
-            Socket socket,
-            FileStream fileStream);
 
         bool IsSocketConnected(Socket socket);
     }

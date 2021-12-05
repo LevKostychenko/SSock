@@ -8,10 +8,8 @@ using SSock.Core.Services.Abstract.Communication;
 using SSock.Core.Services.Abstract.FileUploading;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.Clients
@@ -49,7 +47,7 @@ namespace SSock.Client.Core.Clients
             string clientId,
             (string command, IEnumerable<string> arguments) command,
             ClientPacket receivedData,
-            Ref<Socket> socket)
+            Ref<UdpClient> client)
         {            
             if (receivedData.Status != Statuses.Ok)
             {
@@ -60,7 +58,7 @@ namespace SSock.Client.Core.Clients
             var processor = _responseProcessorFactory
                 .CreateResponseProcessor(
                     command.command,
-                    socket);
+                    client);
             if (processor != default)
             {
                 await processor.ProcessAsync(

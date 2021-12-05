@@ -13,9 +13,6 @@ namespace SSock.Core.Services.Communication
     internal class DataTransitService
         : IDataTransitService
     {
-        const int MAX_RETRY_COUNT = 3;
-        const int DELAY_SECONDS = 2 * 1000;
-
         public byte[] AppendBytes(byte[] initialBytes, int count)
         {
             var prevLength = initialBytes.Length;
@@ -77,72 +74,28 @@ namespace SSock.Core.Services.Communication
         }
 
         public async Task<T> ReadDataAsync<T>(
-            Socket socket, 
+            UdpClient client, 
             int chunkSize,
             Func<IEnumerable<byte>, T> parsePacket)
         {
-            var data = new ArraySegment<byte>(new byte[chunkSize]);
-            var receivedPacket = new List<byte>();
-            var retryCount = 0;
+            var result = await client.ReceiveAsync();
 
-            do
-            {
-                var isReceivedSuccessfully = false;
-
-                while (!isReceivedSuccessfully)
-                {
-                    try
-                    {
-                        await socket.ReceiveAsync(data, SocketFlags.None);
-                        isReceivedSuccessfully = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        retryCount++;
-                        Thread.Sleep(DELAY_SECONDS);
-
-                        if (retryCount > MAX_RETRY_COUNT)
-                        {
-                            // Reconnect this client;
-                            throw ex;
-                        }
-                    }
-                }
-
-                if (data.Array != null)
-                {
-                    receivedPacket.AddRange(data.Array);
-                }
-            }
-            while (socket.Available > 0);
-
-            return parsePacket(receivedPacket);
+            return parsePacket(result.Buffer);
         }
 
         public async Task SendDataAsync(
-            Socket socket, 
+            UdpClient client, 
             IEnumerable<byte> data)
         {
             if (data != null && data.Any())
             {
-                await socket.SendAsync(
-                    new ArraySegment<byte>(data.ToArray()),
-                    SocketFlags.None);
+                await client.SendAsync(
+                    data.ToArray(),
+                    data.Count());
             }
         }
 
         public bool IsSocketConnected(Socket socket)
             => !(socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0);
-
-        public async Task SendDataAsync(
-            Socket socket,
-            FileStream fileStream)
-        {
-            using (var networkStream = new BufferedStream(new NetworkStream(socket, false)))
-            {
-                await fileStream.CopyToAsync(networkStream);
-                await networkStream.FlushAsync();
-            }
-        }
     }
 }

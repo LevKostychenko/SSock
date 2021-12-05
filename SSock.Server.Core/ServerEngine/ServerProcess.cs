@@ -9,7 +9,6 @@ using SSock.Server.Domain;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SSock.Server.Core.ServerEngine
@@ -35,19 +34,19 @@ namespace SSock.Server.Core.ServerEngine
 
         // TODO: Refactor this method
         public async Task ProcessAsync(
-            Socket socket,
+            UdpClient client,
             Action stopServerDelegate)
         {
             try
             {
                 while (true)
                 {                    
-                    var packet = await ReadDataAsync(socket);                    
+                    var packet = await ReadDataAsync(client);                    
                     var (isNewClient, clientId) = IsNewClientConnected(packet);
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
                     {
-                        await NewClientConnectedAsync(clientId, socket);
+                        await NewClientConnectedAsync(clientId, client);
                         continue;
                     }
 
@@ -60,7 +59,7 @@ namespace SSock.Server.Core.ServerEngine
 
                         if (IsRequestToClose(response))
                         {
-                            await SendDataAsync(socket, _packetService.CreatePacket(
+                            await SendDataAsync(client, _packetService.CreatePacket(
                                 new ClientPacket
                                 {
                                     Status = Statuses.Disconnected
@@ -71,7 +70,7 @@ namespace SSock.Server.Core.ServerEngine
                     }
                     catch (NotSupportedException)
                     {
-                        await SendDataAsync(socket, _packetService.CreatePacket(
+                        await SendDataAsync(client, _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Unsupported
@@ -79,7 +78,7 @@ namespace SSock.Server.Core.ServerEngine
                         continue;
                     }
 
-                    await SendDataAsync(socket, _packetService.CreatePacket(
+                    await SendDataAsync(client, _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Ok,
@@ -93,10 +92,9 @@ namespace SSock.Server.Core.ServerEngine
             }
             finally
             {
-                if (socket != null)
-                {
-                    socket.Shutdown(SocketShutdown.Both);
-                    socket.Close();
+                if (client != null)
+                {                    
+                    client.Close();
                 }
             }
         }
@@ -117,11 +115,11 @@ namespace SSock.Server.Core.ServerEngine
             return (false, string.Empty);
         }
 
-        private async Task NewClientConnectedAsync(string clientId, Socket socket)
+        private async Task NewClientConnectedAsync(string clientId, UdpClient client)
         {
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
-            await SendDataAsync(socket, _packetService.CreatePacket(
+            await SendDataAsync(client, _packetService.CreatePacket(
                 new ClientPacket
                 {
                     Status = Statuses.Connected

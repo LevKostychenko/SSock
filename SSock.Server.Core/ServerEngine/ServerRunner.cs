@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using SSock.Server.Core.Abstract.ServerEngine;
 using System;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -28,20 +27,15 @@ namespace SSock.Server.Core.ServerEngine
         {
             var section = _configuration.GetSection("listener");
             var (address, port) = (section["address"], section["port"]);
-            var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var ipPoint = new IPEndPoint(IPAddress.Any, Int32.Parse(port));
+            var client = new UdpClient(Int32.Parse(port));
 
             try
-            {
-                listenSocket.Bind(ipPoint);
-                listenSocket.Listen(20);
-               
+            {               
                 Console.WriteLine("Waiting for connections...");
 
                 while (true)
                 {
-                    var socket = listenSocket.Accept();
-                    await _serverProcess.ProcessAsync(socket, StopServer);
+                    await _serverProcess.ProcessAsync(client, StopServer);
                 }
 
                 //while (IsRunning)
@@ -59,9 +53,9 @@ namespace SSock.Server.Core.ServerEngine
             }
             finally
             {
-                if (listenSocket != null)
-                {                    
-                    listenSocket.Close();
+                if (client != null)
+                {
+                    client.Close();
                 }
             }
         }

@@ -14,13 +14,13 @@ namespace SSock.Client.Core.ResponseProcessing
     {
         private readonly IServiceProvider _serviceProvider;
 
-        private readonly Ref<Socket> _socket;
+        private readonly Ref<UdpClient> _client;
 
         public DefaultResponseProcessor(
             IServiceProvider serviceProvider,
-            Socket socket)
+            UdpClient client)
         {
-            _socket = socket;
+            _client = client;
 
             _serviceProvider = serviceProvider;
         }

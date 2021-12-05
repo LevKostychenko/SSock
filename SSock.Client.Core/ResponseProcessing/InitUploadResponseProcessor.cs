@@ -26,14 +26,14 @@ namespace SSock.Client.Core.ResponseProcessing
 
         private readonly IServiceProvider _serviceProvider;
 
-        private Ref<Socket> _socket;
+        private Ref<UdpClient> _client;
 
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
-            Ref<Socket> socket)
+            Ref<UdpClient> client)
         {
             _serviceProvider = serviceProvider;
-            _socket = socket;
+            _client = client;
         }
 
         public async Task<object> ProcessAsync(
@@ -150,10 +150,10 @@ namespace SSock.Client.Core.ResponseProcessing
 
             var commitPacket = GetCommitPacket(clientId, uploadingHash);
 
-            await dataTransitService.SendDataAsync(_socket, commitPacket);
+            await dataTransitService.SendDataAsync(_client, commitPacket);
             return await dataTransitService
                     .ReadDataAsync(
-                    _socket,
+                    _client,
                     chunkSize,
                     p => packetService.ParsePacket(p));
         }
@@ -187,24 +187,24 @@ namespace SSock.Client.Core.ResponseProcessing
 
                     var packet = GetUploadPacket(clientId, uploadingHash, chunk);
 
-                    await dataTransitService.SendDataAsync(_socket, packet);
+                    await dataTransitService.SendDataAsync(_client, packet);
                     ClientPacket response = null;
 
                     try
                     {
                         response = await dataTransitService
                             .ReadDataAsync(
-                                _socket,
+                                _client,
                                 chunkSize,
                                 p => packetService.ParsePacket(p));
                     }
                     catch (Exception ex)
                     {
                         await ReconnectSocketAsync(clientId);
-                        await dataTransitService.SendDataAsync(_socket, packet);
+                        await dataTransitService.SendDataAsync(_client, packet);
                         response = await dataTransitService
                             .ReadDataAsync(
-                                _socket,
+                                _client,
                                 chunkSize,
                                 p => packetService.ParsePacket(p));
                     }
@@ -238,20 +238,18 @@ namespace SSock.Client.Core.ResponseProcessing
                 IPAddress.Parse(address),
                 Int32.Parse(port));
 
-            var newSocket = new Socket(
-                AddressFamily.InterNetwork,
-                SocketType.Stream, ProtocolType.Tcp);
+            var newClient = new UdpClient();
 
             await ConnectSocketAsync(
-                newSocket,
+                newClient,
                 ipPoint,
                 clientId);
 
-            _socket.Value = newSocket;
+            _client.Value = newClient;
         }
 
         private async Task<bool> ConnectSocketAsync(
-            Socket socket,
+            UdpClient client,
             IPEndPoint ipPoint,
             string clientId)
         {
@@ -261,10 +259,10 @@ namespace SSock.Client.Core.ResponseProcessing
                  .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
 
             Console.WriteLine("Connection to the server...");
-            socket.Connect(ipPoint);
+            client.Connect(ipPoint);
 
             await dataTransitService.SendDataAsync(
-                        socket,
+                        client,
                         packetService.CreatePacket(
                             new ServerPacket
                             {
@@ -273,7 +271,7 @@ namespace SSock.Client.Core.ResponseProcessing
                             }));
 
             var receivedData = await dataTransitService.ReadDataAsync(
-                socket,
+                client,
                 READ_CHUNK_SIZE,
                 x => packetService.ParsePacket(x));
 

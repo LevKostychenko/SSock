@@ -40,24 +40,24 @@ namespace SSock.Client.Core.Abstract.Clients
             string clientId,
             (string command, IEnumerable<string> arguments) command,
             ClientPacket receivedData,
-            Ref<Socket> socket);
+            Ref<UdpClient> client);
 
         public virtual async Task RunAsync()
         {
             IsRunning = true;
-            var socket = new Ref<Socket>();
+            var client = new Ref<UdpClient>();
 
             try
             {                
-                var ipPoint = InitSocket(socket);
-                await ConnectAsync(socket, ipPoint);
+                var ipPoint = InitClient(client);
+                await ConnectAsync(client, ipPoint);
 
                 while (IsRunning)
                 {
                     var parsedCommand = _packetService.GetCommandParts(Console.ReadLine());
 
                     await SendDataAsync(
-                        socket,
+                        client,
                         _packetService.CreatePacket(
                             new ServerPacket
                             {
@@ -69,13 +69,13 @@ namespace SSock.Client.Core.Abstract.Clients
                                         : parsedCommand.arguments.ToList())
                             }));
 
-                    var receivedData = await ReadDataAsync(socket);
+                    var receivedData = await ReadDataAsync(client);
 
                     await ProcessUserCommandWithResponseAsync(
                         ClientId,
                         parsedCommand,
                         receivedData,
-                        socket);
+                        client);
                 }
             }
             catch(Exception ex)
@@ -84,10 +84,9 @@ namespace SSock.Client.Core.Abstract.Clients
             }
             finally
             {
-                if (socket != null)
+                if (client != null)
                 {
-                    socket.Value.Shutdown(SocketShutdown.Both);
-                    socket.Value.Close();
+                    client.Value.Close();
                 }
             }
         }
@@ -98,15 +97,15 @@ namespace SSock.Client.Core.Abstract.Clients
         }
 
         private async Task ConnectAsync(
-            Socket socket, 
+            UdpClient client, 
             IPEndPoint ipPoint)
         {
             Console.WriteLine("Connection to the server...");
-            socket.Connect(ipPoint);
+            client.Connect(ipPoint);
             ClientId = Guid.NewGuid().ToString();
 
             await SendDataAsync(
-                       socket,
+                       client,
                        _packetService.CreatePacket(
                            new ServerPacket
                            {
@@ -114,14 +113,14 @@ namespace SSock.Client.Core.Abstract.Clients
                                ClientId = ClientId  
                            }));
 
-            var receivedData = await ReadDataAsync(socket);
+            var receivedData = await ReadDataAsync(client);
             if (receivedData.Status == Statuses.Connected)
             {
                 Console.WriteLine("Connected successfully");
             }
         }
 
-        private IPEndPoint InitSocket(Ref<Socket> socket)
+        private IPEndPoint InitClient(Ref<UdpClient> client)
         {
             var (port, address) = (
                     _configurationSection["port"],
@@ -130,11 +129,9 @@ namespace SSock.Client.Core.Abstract.Clients
             var ipPoint = new IPEndPoint(
                 IPAddress.Parse(address),
                 Int32.Parse(port));
-            socket.Value = new Socket(
-                AddressFamily.InterNetwork, 
-                SocketType.Stream, ProtocolType.Tcp);
+            client.Value = new UdpClient(ipPoint);
 
             return ipPoint;
-        }       
+        }
     }
 }

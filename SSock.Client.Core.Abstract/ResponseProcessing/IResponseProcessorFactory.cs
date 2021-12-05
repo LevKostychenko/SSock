@@ -7,6 +7,6 @@ namespace SSock.Client.Core.Abstract.ResponseProcessing
     {
         IResponseProcessor CreateResponseProcessor(
             string command,
-            Ref<Socket> socket);
+            Ref<UdpClient> client);
     }
 }
