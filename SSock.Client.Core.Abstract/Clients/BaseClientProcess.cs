@@ -105,7 +105,7 @@ namespace SSock.Client.Core.Abstract.Clients
             IPEndPoint ipPoint)
         {
             Console.WriteLine("Connection to the server...");
-            client.Connect(ipPoint);
+            // client.Connect(ipPoint);
             ClientId = Guid.NewGuid().ToString();
 
             await _dataTransitService.SendDataAsync(

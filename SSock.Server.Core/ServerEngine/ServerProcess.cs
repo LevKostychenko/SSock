@@ -122,7 +122,7 @@ namespace SSock.Server.Core.ServerEngine
 
         private async Task NewClientConnectedAsync(string clientId, UdpClient client)
         {
-            client.Connect(remoteEndPoint);
+            client.Connect(remoteEndPoint.Value);
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
             //client.Connect();

@@ -82,7 +82,7 @@ namespace SSock.Core.Services.Communication
         {
             var result = await client.ReceiveAsync();
 
-            remoteEndPoint = result.RemoteEndPoint;
+            remoteEndPoint.Value = result.RemoteEndPoint;
             return parsePacket(result.Buffer);
         }
 
