@@ -25,11 +25,12 @@ namespace SSock.Client.Core.Abstract.Clients
         private readonly IPacketService<ServerPacket, ClientPacket> _packetService;
         private readonly IDataTransitService _dataTransitService;
 
+        private Ref<IPEndPoint> remoteEndPoint = new Ref<IPEndPoint>();
+
         protected BaseClientProcess(
             IDataTransitService dataTransitService,
             IConfigurationSection configurationSection,
             IPacketService<ServerPacket, ClientPacket> packetService)
-            : base(dataTransitService)
         {
             _configurationSection = configurationSection;
             _packetService = packetService;
@@ -56,7 +57,7 @@ namespace SSock.Client.Core.Abstract.Clients
                 {
                     var parsedCommand = _packetService.GetCommandParts(Console.ReadLine());
 
-                    await SendDataAsync(
+                    await _dataTransitService.SendDataAsync(
                         client,
                         _packetService.CreatePacket(
                             new ServerPacket
@@ -69,7 +70,10 @@ namespace SSock.Client.Core.Abstract.Clients
                                         : parsedCommand.arguments.ToList())
                             }));
 
-                    var receivedData = await ReadDataAsync(client);
+                    var receivedData = await _dataTransitService.ReadDataAsync(
+                        client, 
+                        x => _packetService.ParsePacket(x), 
+                        remoteEndPoint);
 
                     await ProcessUserCommandWithResponseAsync(
                         ClientId,
@@ -84,7 +88,7 @@ namespace SSock.Client.Core.Abstract.Clients
             }
             finally
             {
-                if (client != null)
+                if (client .Value != null)
                 {
                     client.Value.Close();
                 }
@@ -104,7 +108,7 @@ namespace SSock.Client.Core.Abstract.Clients
             client.Connect(ipPoint);
             ClientId = Guid.NewGuid().ToString();
 
-            await SendDataAsync(
+            await _dataTransitService.SendDataAsync(
                        client,
                        _packetService.CreatePacket(
                            new ServerPacket
@@ -113,7 +117,10 @@ namespace SSock.Client.Core.Abstract.Clients
                                ClientId = ClientId  
                            }));
 
-            var receivedData = await ReadDataAsync(client);
+            var receivedData = await _dataTransitService.ReadDataAsync(
+                client,
+                x => _packetService.ParsePacket(x),
+                remoteEndPoint);
             if (receivedData.Status == Statuses.Connected)
             {
                 Console.WriteLine("Connected successfully");

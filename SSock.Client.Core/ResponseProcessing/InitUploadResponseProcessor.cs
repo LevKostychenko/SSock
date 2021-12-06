@@ -27,6 +27,7 @@ namespace SSock.Client.Core.ResponseProcessing
         private readonly IServiceProvider _serviceProvider;
 
         private Ref<UdpClient> _client;
+        private Ref<IPEndPoint> _remoteEndPoint;
 
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
@@ -34,6 +35,7 @@ namespace SSock.Client.Core.ResponseProcessing
         {
             _serviceProvider = serviceProvider;
             _client = client;
+            _remoteEndPoint = new Ref<IPEndPoint>();
         }
 
         public async Task<object> ProcessAsync(
@@ -154,8 +156,8 @@ namespace SSock.Client.Core.ResponseProcessing
             return await dataTransitService
                     .ReadDataAsync(
                     _client,
-                    chunkSize,
-                    p => packetService.ParsePacket(p));
+                    p => packetService.ParsePacket(p),
+                    _remoteEndPoint);
         }
 
         private async Task UploadFileAsync(
@@ -195,8 +197,8 @@ namespace SSock.Client.Core.ResponseProcessing
                         response = await dataTransitService
                             .ReadDataAsync(
                                 _client,
-                                chunkSize,
-                                p => packetService.ParsePacket(p));
+                                p => packetService.ParsePacket(p),
+                                _remoteEndPoint);
                     }
                     catch (Exception ex)
                     {
@@ -205,8 +207,8 @@ namespace SSock.Client.Core.ResponseProcessing
                         response = await dataTransitService
                             .ReadDataAsync(
                                 _client,
-                                chunkSize,
-                                p => packetService.ParsePacket(p));
+                                p => packetService.ParsePacket(p),
+                                _remoteEndPoint);
                     }
 
                     progress.Report(
@@ -272,8 +274,8 @@ namespace SSock.Client.Core.ResponseProcessing
 
             var receivedData = await dataTransitService.ReadDataAsync(
                 client,
-                READ_CHUNK_SIZE,
-                x => packetService.ParsePacket(x));
+                x => packetService.ParsePacket(x),
+                _remoteEndPoint);
 
             if (receivedData.Status == Statuses.Connected)
             {

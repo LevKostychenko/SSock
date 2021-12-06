@@ -5,7 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SSock.Core.Services.Abstract\SSock.Core.Services.Abstract.csproj" />
+    <Reference Include="SSock.Core">
+      <HintPath>..\SSock.Core\bin\Debug\netcoreapp3.1\SSock.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

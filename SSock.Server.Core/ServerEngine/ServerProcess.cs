@@ -8,6 +8,7 @@ using SSock.Server.Core.Abstract.ServerEngine;
 using SSock.Server.Domain;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -21,11 +22,12 @@ namespace SSock.Server.Core.ServerEngine
         private readonly IPacketService<ClientPacket, ServerPacket> _packetService;
         private readonly IDataTransitService _dataTransitService;
 
+        private Ref<IPEndPoint> remoteEndPoint = new Ref<IPEndPoint>();
+
         public ServerProcess(
             ICommandProcessor commandProcessor,
             IPacketService<ClientPacket, ServerPacket> packetService,
             IDataTransitService dataTransitService)
-            : base(dataTransitService)
         {
             _packetService = packetService;
             _dataTransitService = dataTransitService;
@@ -41,7 +43,10 @@ namespace SSock.Server.Core.ServerEngine
             {
                 while (true)
                 {                    
-                    var packet = await ReadDataAsync(client);                    
+                    var packet = await _dataTransitService.ReadDataAsync(
+                        client, 
+                        x => ParsePacket(x),
+                        remoteEndPoint);                  
                     var (isNewClient, clientId) = IsNewClientConnected(packet);
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
@@ -59,7 +64,7 @@ namespace SSock.Server.Core.ServerEngine
 
                         if (IsRequestToClose(response))
                         {
-                            await SendDataAsync(client, _packetService.CreatePacket(
+                            await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
                                 new ClientPacket
                                 {
                                     Status = Statuses.Disconnected
@@ -70,7 +75,7 @@ namespace SSock.Server.Core.ServerEngine
                     }
                     catch (NotSupportedException)
                     {
-                        await SendDataAsync(client, _packetService.CreatePacket(
+                        await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Unsupported
@@ -78,7 +83,7 @@ namespace SSock.Server.Core.ServerEngine
                         continue;
                     }
 
-                    await SendDataAsync(client, _packetService.CreatePacket(
+                    await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Ok,
@@ -117,9 +122,11 @@ namespace SSock.Server.Core.ServerEngine
 
         private async Task NewClientConnectedAsync(string clientId, UdpClient client)
         {
+            client.Connect(remoteEndPoint);
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
-            await SendDataAsync(client, _packetService.CreatePacket(
+            //client.Connect();
+            await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
                 new ClientPacket
                 {
                     Status = Statuses.Connected

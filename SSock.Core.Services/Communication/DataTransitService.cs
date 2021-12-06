@@ -1,8 +1,10 @@
-﻿using SSock.Core.Services.Abstract.Communication;
+﻿using SSock.Core.Infrastructure;
+using SSock.Core.Services.Abstract.Communication;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
@@ -74,12 +76,13 @@ namespace SSock.Core.Services.Communication
         }
 
         public async Task<T> ReadDataAsync<T>(
-            UdpClient client, 
-            int chunkSize,
-            Func<IEnumerable<byte>, T> parsePacket)
+            UdpClient client,
+            Func<IEnumerable<byte>, T> parsePacket,
+            Ref<IPEndPoint> remoteEndPoint)
         {
             var result = await client.ReceiveAsync();
 
+            remoteEndPoint = result.RemoteEndPoint;
             return parsePacket(result.Buffer);
         }
 

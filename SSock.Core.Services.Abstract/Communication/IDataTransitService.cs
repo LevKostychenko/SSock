@@ -1,5 +1,7 @@
-﻿using System;
+﻿using SSock.Core.Infrastructure;
+using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -17,8 +19,8 @@ namespace SSock.Core.Services.Abstract.Communication
 
         Task<T> ReadDataAsync<T>(
            UdpClient client,
-           int chunkSize,
-           Func<IEnumerable<byte>, T> parsePacket);
+           Func<IEnumerable<byte>, T> parsePacket,
+           Ref<IPEndPoint> remoteEndPoint);
 
         Task SendDataAsync(
             UdpClient client,
