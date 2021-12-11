@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using SSock.Core;
 using SSock.Core.Commands;
 using SSock.Core.Services;
 using SSock.Server.Core;
@@ -13,6 +14,7 @@ namespace SSock.Server.Extensions
                 .AddServer()
                 .AddServices()
                 .AddServerServices()
+                .AddCore()
                 .AddCommands();
     }
 }

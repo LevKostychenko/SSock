@@ -14,6 +14,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.ResponseProcessing
@@ -28,6 +29,8 @@ namespace SSock.Client.Core.ResponseProcessing
 
         private Ref<UdpClient> _client;
         private Ref<IPEndPoint> _remoteEndPoint;
+
+        private int responseWait = 0;
 
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
@@ -71,6 +74,9 @@ namespace SSock.Client.Core.ResponseProcessing
                 .GetOrCreateAsync(UPLOADING_FILE_PATH_KEY, filePath);
 
             var chunkSize = Int32.Parse(config["chunkSize"]);
+
+            _client.Value.Client.ReceiveBufferSize = int.MaxValue;
+            _client.Value.Client.SendBufferSize = int.MaxValue;
 
             await UploadFileAsync(
                 clientId,
@@ -198,7 +204,7 @@ namespace SSock.Client.Core.ResponseProcessing
                             .ReadDataAsync(
                                 _client,
                                 p => packetService.ParsePacket(p),
-                                _remoteEndPoint);
+                                _remoteEndPoint);                        
                     }
                     catch (Exception ex)
                     {
