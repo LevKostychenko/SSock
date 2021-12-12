@@ -3,6 +3,7 @@ using SSock.Client.Core.Abstract.ResponseProcessing;
 using SSock.Client.Domain;
 using SSock.Client.Services.Abstract;
 using SSock.Core.Abstract.Infrastructure;
+using SSock.Core.Abstract.Infrastructure.Helpers;
 using SSock.Core.Commands;
 using SSock.Core.Infrastructure;
 using SSock.Core.Infrastructure.Session;
@@ -14,7 +15,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.ResponseProcessing
@@ -27,17 +27,20 @@ namespace SSock.Client.Core.ResponseProcessing
 
         private readonly IServiceProvider _serviceProvider;
 
-        private Ref<UdpClient> _client;
+        private Ref<UdpClient> _sender;
+        private Ref<UdpClient> _receiver;
         private Ref<IPEndPoint> _remoteEndPoint;
 
         private int responseWait = 0;
 
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
-            Ref<UdpClient> client)
+            Ref<UdpClient> sender,
+            Ref<UdpClient> receiver)
         {
             _serviceProvider = serviceProvider;
-            _client = client;
+            _sender = sender;
+            _receiver = receiver;
             _remoteEndPoint = new Ref<IPEndPoint>();
         }
 
@@ -50,6 +53,12 @@ namespace SSock.Client.Core.ResponseProcessing
                    .GetService(typeof(IDataTransitService));
             var config = (IConfiguration)_serviceProvider
                .GetService(typeof(IConfiguration));
+
+            var serverSection = config.GetSection("server");
+
+            _remoteEndPoint.Value = new IPEndPoint(
+                IPAddress.Parse(serverSection["address"]),
+                Int32.Parse(serverSection["port"]));
 
             var uploadingHash = dataTransitService
                     .ConvertFromByteArray<string>(
@@ -75,8 +84,11 @@ namespace SSock.Client.Core.ResponseProcessing
 
             var chunkSize = Int32.Parse(config["chunkSize"]);
 
-            _client.Value.Client.ReceiveBufferSize = int.MaxValue;
-            _client.Value.Client.SendBufferSize = int.MaxValue;
+            _receiver.Value.Client.ReceiveBufferSize = int.MaxValue;
+            _receiver.Value.Client.SendBufferSize = int.MaxValue;
+
+            _sender.Value.Client.ReceiveBufferSize = int.MaxValue;
+            _sender.Value.Client.SendBufferSize = int.MaxValue;
 
             await UploadFileAsync(
                 clientId,
@@ -158,10 +170,13 @@ namespace SSock.Client.Core.ResponseProcessing
 
             var commitPacket = GetCommitPacket(clientId, uploadingHash);
 
-            await dataTransitService.SendDataAsync(_client, commitPacket);
+            await dataTransitService.SendDataAsync(
+                _sender, 
+                commitPacket,
+                _remoteEndPoint.Value);
             return await dataTransitService
                     .ReadDataAsync(
-                    _client,
+                    _receiver,
                     p => packetService.ParsePacket(p),
                     _remoteEndPoint);
         }
@@ -176,6 +191,8 @@ namespace SSock.Client.Core.ResponseProcessing
                 .GetService(typeof(IDataTransitService));
             var packetService = (IPacketService<ServerPacket, ClientPacket>)_serviceProvider
                 .GetService(typeof(IPacketService<ServerPacket, ClientPacket>));
+            var helper = (ITimeOutHelper)_serviceProvider
+                .GetService(typeof(ITimeOutHelper));
 
             var chunk = new byte[chunkSize];
 
@@ -195,24 +212,30 @@ namespace SSock.Client.Core.ResponseProcessing
 
                     var packet = GetUploadPacket(clientId, uploadingHash, chunk);
 
-                    await dataTransitService.SendDataAsync(_client, packet);
+                    await dataTransitService.SendDataAsync(
+                        _sender, 
+                        packet,
+                        _remoteEndPoint.Value);
                     ClientPacket response = null;
 
                     try
                     {
                         response = await dataTransitService
                             .ReadDataAsync(
-                                _client,
+                                _receiver,
                                 p => packetService.ParsePacket(p),
-                                _remoteEndPoint);                        
+                                _remoteEndPoint);
                     }
                     catch (Exception ex)
                     {
                         await ReconnectSocketAsync(clientId);
-                        await dataTransitService.SendDataAsync(_client, packet);
+                        await dataTransitService.SendDataAsync(
+                            _sender, 
+                            packet,
+                            _remoteEndPoint.Value);
                         response = await dataTransitService
                             .ReadDataAsync(
-                                _client,
+                                _receiver,
                                 p => packetService.ParsePacket(p),
                                 _remoteEndPoint);
                     }
@@ -232,6 +255,7 @@ namespace SSock.Client.Core.ResponseProcessing
             }
         }
 
+        // Fix for udp
         private async Task ReconnectSocketAsync(
             string clientId)
         {
@@ -253,7 +277,7 @@ namespace SSock.Client.Core.ResponseProcessing
                 ipPoint,
                 clientId);
 
-            _client.Value = newClient;
+            _sender.Value = newClient;
         }
 
         private async Task<bool> ConnectSocketAsync(
@@ -276,7 +300,8 @@ namespace SSock.Client.Core.ResponseProcessing
                             {
                                 Command = CommandsNames.INIT_COMMAND,
                                 ClientId = clientId
-                            }));
+                            }),
+                        _remoteEndPoint.Value);
 
             var receivedData = await dataTransitService.ReadDataAsync(
                 client,

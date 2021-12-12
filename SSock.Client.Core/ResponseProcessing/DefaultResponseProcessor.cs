@@ -14,13 +14,16 @@ namespace SSock.Client.Core.ResponseProcessing
     {
         private readonly IServiceProvider _serviceProvider;
 
-        private readonly Ref<UdpClient> _client;
+        private readonly Ref<UdpClient> _sender;
+        private readonly Ref<UdpClient> _receiver;
 
         public DefaultResponseProcessor(
             IServiceProvider serviceProvider,
-            UdpClient client)
+            Ref<UdpClient> sender,
+            Ref<UdpClient> receiver)
         {
-            _client = client;
+            _receiver = receiver;
+            _sender = sender;
 
             _serviceProvider = serviceProvider;
         }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using SSock.Client.Domain;
-using SSock.Core.Abstract;
+using SSock.Core;
 using SSock.Core.Commands;
 using SSock.Core.Infrastructure;
 using SSock.Core.Services.Abstract.Communication;
@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.Abstract.Clients
@@ -21,7 +20,7 @@ namespace SSock.Client.Core.Abstract.Clients
 
         private string ClientId { get; set; }
 
-        private readonly IConfigurationSection _configurationSection;
+        private readonly IConfiguration _configuration;
         private readonly IPacketService<ServerPacket, ClientPacket> _packetService;
         private readonly IDataTransitService _dataTransitService;
 
@@ -29,10 +28,11 @@ namespace SSock.Client.Core.Abstract.Clients
 
         protected BaseClientProcess(
             IDataTransitService dataTransitService,
-            IConfigurationSection configurationSection,
+            IConfiguration configuration,
             IPacketService<ServerPacket, ClientPacket> packetService)
+            : base(Int32.Parse(configuration["localport"]))
         {
-            _configurationSection = configurationSection;
+            _configuration = configuration;
             _packetService = packetService;
             _dataTransitService = dataTransitService;
         }
@@ -40,25 +40,23 @@ namespace SSock.Client.Core.Abstract.Clients
         protected abstract Task ProcessUserCommandWithResponseAsync(
             string clientId,
             (string command, IEnumerable<string> arguments) command,
-            ClientPacket receivedData,
-            Ref<UdpClient> client);
+            ClientPacket receivedData);
 
         public virtual async Task RunAsync()
         {
             IsRunning = true;
-            var client = new Ref<UdpClient>();
 
             try
             {
-                var ipPoint = InitClient(client);
-                await ConnectAsync(client, ipPoint);
+                var ipPoint = InitClient();
+                await ConnectAsync(ipPoint);
 
                 while (IsRunning)
                 {
                     var parsedCommand = _packetService.GetCommandParts(Console.ReadLine());
 
                     await _dataTransitService.SendDataAsync(
-                        client,
+                        Sender,
                         _packetService.CreatePacket(
                             new ServerPacket
                             {
@@ -68,18 +66,18 @@ namespace SSock.Client.Core.Abstract.Clients
                                     parsedCommand.arguments == null
                                         ? new List<string> { string.Empty }
                                         : parsedCommand.arguments.ToList())
-                            }));
+                            }),
+                        ipPoint);
 
                     var receivedData = await _dataTransitService.ReadDataAsync(
-                        client,
+                        Receiver,
                         x => _packetService.ParsePacket(x),
                         remoteEndPoint);
 
                     await ProcessUserCommandWithResponseAsync(
                         ClientId,
                         parsedCommand,
-                        receivedData,
-                        client);
+                        receivedData);
                 }
             }
             catch (Exception ex)
@@ -87,11 +85,7 @@ namespace SSock.Client.Core.Abstract.Clients
                 LogError($"Error: {ex.Message}");
             }
             finally
-            {
-                if (client.Value != null)
-                {
-                    client.Value.Close();
-                }
+            {                
             }
         }
 
@@ -101,7 +95,6 @@ namespace SSock.Client.Core.Abstract.Clients
         }
 
         private async Task ConnectAsync(
-            UdpClient client,
             IPEndPoint ipPoint)
         {
             Console.WriteLine("Connection to the server...");
@@ -109,16 +102,17 @@ namespace SSock.Client.Core.Abstract.Clients
             ClientId = Guid.NewGuid().ToString();
 
             await _dataTransitService.SendDataAsync(
-                       client,
+                       Sender,
                        _packetService.CreatePacket(
                            new ServerPacket
                            {
                                Command = CommandsNames.INIT_COMMAND,
                                ClientId = ClientId
-                           }));
+                           }),
+                       ipPoint);
 
             var receivedData = await _dataTransitService.ReadDataAsync(
-                client,
+                Receiver,
                 x => _packetService.ParsePacket(x),
                 remoteEndPoint);
             if (receivedData.Status == Statuses.Connected)
@@ -127,16 +121,15 @@ namespace SSock.Client.Core.Abstract.Clients
             }
         }
 
-        private IPEndPoint InitClient(Ref<UdpClient> client)
+        private IPEndPoint InitClient()
         {
             var (port, address) = (
-                    _configurationSection["port"],
-                    _configurationSection["address"]);
+                    _configuration.GetSection("server")["port"],
+                    _configuration.GetSection("server")["address"]);
 
             var ipPoint = new IPEndPoint(
                 IPAddress.Parse(address),
-                Int32.Parse(port));
-            client.Value = new UdpClient(address, Int32.Parse(port));
+                Int32.Parse(port));            
 
             return ipPoint;
         }

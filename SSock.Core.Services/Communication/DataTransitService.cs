@@ -87,13 +87,15 @@ namespace SSock.Core.Services.Communication
 
         public async Task SendDataAsync(
             UdpClient client, 
-            IEnumerable<byte> data)
+            IEnumerable<byte> data,
+            IPEndPoint endPoint)
         {
             if (data != null && data.Any())
             {
                 await client.SendAsync(
                     data.ToArray(),
-                    data.Count());
+                    data.Count(),
+                    endPoint);
             }
         }
 

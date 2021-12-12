@@ -10,10 +10,10 @@ namespace SSock.Core.Infrastructure.Helpers
     {
         private bool _isStopCalled;
 
-        public async Task StartTimeOutTrackingAsync(
+        public void StartTimeOutTracking(
             int timeout,
             Action onTimeOut)
-            =>  await Task.Factory.StartNew(() =>
+            =>  Task.Factory.StartNew(() =>
                 {
                     _isStopCalled = false;
                     Thread.Sleep(timeout);

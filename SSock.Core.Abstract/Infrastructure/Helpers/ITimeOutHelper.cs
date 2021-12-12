@@ -5,7 +5,7 @@ namespace SSock.Core.Abstract.Infrastructure.Helpers
 {
     public interface ITimeOutHelper
     {
-        Task StartTimeOutTrackingAsync(
+        void StartTimeOutTracking(
             int timeout,
             Action onTimeOut);
 

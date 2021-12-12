@@ -33,7 +33,7 @@ namespace SSock.Client.Core.Clients
             IPacketService<ServerPacket, ClientPacket> packetService)
             : base(
                   dataTransitService,
-                  configuration.GetSection("server"),
+                  configuration,
                   packetService)
         {
             _packetService = packetService;
@@ -46,8 +46,7 @@ namespace SSock.Client.Core.Clients
         protected override async Task ProcessUserCommandWithResponseAsync(
             string clientId,
             (string command, IEnumerable<string> arguments) command,
-            ClientPacket receivedData,
-            Ref<UdpClient> client)
+            ClientPacket receivedData)
         {            
             if (receivedData.Status != Statuses.Ok)
             {
@@ -58,7 +57,8 @@ namespace SSock.Client.Core.Clients
             var processor = _responseProcessorFactory
                 .CreateResponseProcessor(
                     command.command,
-                    client);
+                    Receiver,
+                    Sender);
             if (processor != default)
             {
                 await processor.ProcessAsync(
@@ -101,10 +101,7 @@ namespace SSock.Client.Core.Clients
             //            $"{bytesString} ");
             //    }
             //}
-        }
-
-        public override async Task RunAsync()
-            => await base.RunAsync();        
+        }   
 
         public override void Stop()
             => throw new NotImplementedException();

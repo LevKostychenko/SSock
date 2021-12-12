@@ -24,7 +24,8 @@ namespace SSock.Core.Services.Abstract.Communication
 
         Task SendDataAsync(
             UdpClient client,
-            IEnumerable<byte> data);
+            IEnumerable<byte> data,
+            IPEndPoint endPoint);
 
         bool IsSocketConnected(Socket socket);
     }

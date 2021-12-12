@@ -1,4 +1,5 @@
-﻿using SSock.Core.Abstract;
+﻿using Microsoft.Extensions.Configuration;
+using SSock.Core;
 using SSock.Core.Commands;
 using SSock.Core.Infrastructure;
 using SSock.Core.Infrastructure.Session;
@@ -22,16 +23,26 @@ namespace SSock.Server.Core.ServerEngine
         private readonly IPacketService<ClientPacket, ServerPacket> _packetService;
         private readonly IDataTransitService _dataTransitService;
 
-        private Ref<IPEndPoint> remoteEndPoint = new Ref<IPEndPoint>();
+        private Ref<IPEndPoint> _remoteEndPoint = new Ref<IPEndPoint>();
 
         public ServerProcess(
             ICommandProcessor commandProcessor,
             IPacketService<ClientPacket, ServerPacket> packetService,
-            IDataTransitService dataTransitService)
+            IDataTransitService dataTransitService,
+            IConfiguration configuration)
+            : base(Int32.Parse(configuration.GetSection("listener")["port"]))
         {
             _packetService = packetService;
             _dataTransitService = dataTransitService;
             _commandProcessor = commandProcessor;
+
+            var (port, address) = (
+                    configuration.GetSection("server")["port"],
+                    configuration.GetSection("server")["address"]);
+
+            _remoteEndPoint.Value = new IPEndPoint(
+                IPAddress.Parse(address),
+                Int32.Parse(port));
         }
 
         // TODO: Refactor this method
@@ -44,9 +55,9 @@ namespace SSock.Server.Core.ServerEngine
                 while (true)
                 {                    
                     var packet = await _dataTransitService.ReadDataAsync(
-                        client, 
+                        Receiver, 
                         x => ParsePacket(x),
-                        remoteEndPoint);                  
+                        _remoteEndPoint);                  
                     var (isNewClient, clientId) = IsNewClientConnected(packet);
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
@@ -64,31 +75,40 @@ namespace SSock.Server.Core.ServerEngine
 
                         if (IsRequestToClose(response))
                         {
-                            await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
+                            await _dataTransitService.SendDataAsync(
+                                Sender,
+                                _packetService.CreatePacket(
                                 new ClientPacket
                                 {
                                     Status = Statuses.Disconnected
-                                }));
+                                }),
+                                _remoteEndPoint.Value);
                             stopServerDelegate();
                             break;
                         }
                     }
                     catch (NotSupportedException)
                     {
-                        await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
+                        await _dataTransitService.SendDataAsync(
+                            Sender,
+                            _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Unsupported
-                            }));
+                            }),
+                            _remoteEndPoint.Value);
                         continue;
                     }
 
-                    await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
+                    await _dataTransitService.SendDataAsync(
+                        Sender, 
+                        _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Ok,
                                 Payload = _dataTransitService.ConvertToByteArray(response)
-                            }));
+                            }),
+                        _remoteEndPoint.Value);
                 }
             }
             catch (Exception ex)
@@ -122,15 +142,18 @@ namespace SSock.Server.Core.ServerEngine
 
         private async Task NewClientConnectedAsync(string clientId, UdpClient client)
         {
-            client.Connect(remoteEndPoint.Value);
+            // client.Connect(remoteEndPoint.Value);
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
             //client.Connect();
-            await _dataTransitService.SendDataAsync(client, _packetService.CreatePacket(
+            await _dataTransitService.SendDataAsync(
+                Sender, 
+                _packetService.CreatePacket(
                 new ClientPacket
                 {
                     Status = Statuses.Connected
-                }));
+                }),
+                _remoteEndPoint.Value);
         }
 
         protected override ServerPacket ParsePacket(IEnumerable<byte> packet)

@@ -4,6 +4,7 @@
     "port": "8888"
   },
 
+  "localport": "8888",
   "chunkSize": 896
   // init_upload C:\Users\Leu.Kastsiuchenka\Downloads\video1.mp4
   // init_upload C:\Users\Leu.Kastsiuchenka\Downloads\ER-diagramm-nssql.png
