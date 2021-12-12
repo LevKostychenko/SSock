@@ -30,7 +30,9 @@ namespace SSock.Client.Core.Abstract.Clients
             IDataTransitService dataTransitService,
             IConfiguration configuration,
             IPacketService<ServerPacket, ClientPacket> packetService)
-            : base(Int32.Parse(configuration["localport"]))
+            : base(
+                  Int32.Parse(configuration["localSenderPort"]),
+                  Int32.Parse(configuration["localReceiverPort"]))
         {
             _configuration = configuration;
             _packetService = packetService;

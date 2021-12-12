@@ -13,13 +13,15 @@ namespace SSock.Core
         protected Ref<UdpClient> Sender { get; set; }
         protected Ref<UdpClient> Receiver { get; set; }
 
-        protected BaseProcess(int localPort)
+        protected BaseProcess(
+            int localSenderPort,
+            int localReceiverPort)
         {
             Sender = new Ref<UdpClient>();
             Receiver = new Ref<UdpClient>();
 
-            Sender.Value = new UdpClient();
-            Receiver.Value = new UdpClient(localPort);
+            Sender.Value = new UdpClient(localSenderPort);
+            Receiver.Value = new UdpClient(localReceiverPort);
         }
 
         protected void LogError(string error)

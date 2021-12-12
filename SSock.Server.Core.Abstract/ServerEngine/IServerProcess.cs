@@ -7,7 +7,6 @@ namespace SSock.Server.Core.Abstract.ServerEngine
     public interface IServerProcess
     {
         Task ProcessAsync(
-            UdpClient client, 
             Action stopServerDelegate);
     }
 }

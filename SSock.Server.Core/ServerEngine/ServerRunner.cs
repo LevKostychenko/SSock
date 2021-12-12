@@ -25,17 +25,13 @@ namespace SSock.Server.Core.ServerEngine
 
         public async Task RunAsync()
         {
-            var section = _configuration.GetSection("listener");
-            var (address, port) = (section["address"], section["port"]);
-            var client = new UdpClient(Int32.Parse(port));
-
             try
             {               
                 Console.WriteLine("Waiting for connections...");
 
                 while (true)
                 {
-                    await _serverProcess.ProcessAsync(client, StopServer);
+                    await _serverProcess.ProcessAsync(StopServer);
                 }
 
                 //while (IsRunning)

@@ -30,24 +30,17 @@ namespace SSock.Server.Core.ServerEngine
             IPacketService<ClientPacket, ServerPacket> packetService,
             IDataTransitService dataTransitService,
             IConfiguration configuration)
-            : base(Int32.Parse(configuration.GetSection("listener")["port"]))
+            : base(
+                  Int32.Parse(configuration.GetSection("listener")["receiverPort"]),
+                  Int32.Parse(configuration.GetSection("listener")["senderPort"]))
         {
             _packetService = packetService;
             _dataTransitService = dataTransitService;
             _commandProcessor = commandProcessor;
-
-            var (port, address) = (
-                    configuration.GetSection("server")["port"],
-                    configuration.GetSection("server")["address"]);
-
-            _remoteEndPoint.Value = new IPEndPoint(
-                IPAddress.Parse(address),
-                Int32.Parse(port));
         }
 
         // TODO: Refactor this method
         public async Task ProcessAsync(
-            UdpClient client,
             Action stopServerDelegate)
         {
             try
@@ -62,7 +55,7 @@ namespace SSock.Server.Core.ServerEngine
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
                     {
-                        await NewClientConnectedAsync(clientId, client);
+                        await NewClientConnectedAsync(clientId);
                         continue;
                     }
 
@@ -117,10 +110,6 @@ namespace SSock.Server.Core.ServerEngine
             }
             finally
             {
-                if (client != null)
-                {                    
-                    client.Close();
-                }
             }
         }
 
@@ -140,7 +129,7 @@ namespace SSock.Server.Core.ServerEngine
             return (false, string.Empty);
         }
 
-        private async Task NewClientConnectedAsync(string clientId, UdpClient client)
+        private async Task NewClientConnectedAsync(string clientId)
         {
             // client.Connect(remoteEndPoint.Value);
             ServerSession.InitNewSession(clientId);
