@@ -9,7 +9,6 @@ using SSock.Core.Services.Abstract.FileUploading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SSock.Client.Core.Clients
@@ -57,8 +56,7 @@ namespace SSock.Client.Core.Clients
             var processor = _responseProcessorFactory
                 .CreateResponseProcessor(
                     command.command,
-                    Receiver,
-                    Sender);
+                    Client);
             if (processor != default)
             {
                 await processor.ProcessAsync(
@@ -73,34 +71,6 @@ namespace SSock.Client.Core.Clients
                             .ToArray())),
                     clientId);
             }
-
-            // var parsedCommand = _commandService.ParseCommand(command.Trim(' ')[0]);
-
-            //if (parsedCommand.command.Equals(
-            //    CommandsNames.InitUploadCommand, 
-            //    StringComparison.OrdinalIgnoreCase))
-            //{                
-            //    if (string.IsNullOrEmpty(parsedCommand.args[0]))
-            //    {
-            //        throw new Exception("File path does not presents ath the command arguments");
-            //    }
-
-            //    await using var stream = File.Open(parsedCommand.args[0], FileMode.Open);
-
-            //    var fileBytes = await _fileUploaderService
-            //        .GetFileBytesAsync(stream);
-
-            //    var bytesString = Encoding.Unicode.GetString(fileBytes, 0, fileBytes.Length);
-
-            //    if (!string.IsNullOrEmpty(receivedData))
-            //    {
-            //        await SendDataAsync(socket, 
-            //            $"{CommandsNames.UploadDataCommand} " +
-            //            $"{receivedData} " +
-            //            $"{Path.GetFileName(parsedCommand.args[0])} " +
-            //            $"{bytesString} ");
-            //    }
-            //}
         }   
 
         public override void Stop()

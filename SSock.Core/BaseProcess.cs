@@ -10,18 +10,13 @@ namespace SSock.Core
         protected const int READ_CHUNK_SIZE = 2;
         protected abstract T ParsePacket(IEnumerable<byte> packet);
 
-        protected Ref<UdpClient> Sender { get; set; }
-        protected Ref<UdpClient> Receiver { get; set; }
+        protected Ref<UdpClient> Client { get; set; }
 
         protected BaseProcess(
-            int localSenderPort,
-            int localReceiverPort)
+            int localPort)
         {
-            Sender = new Ref<UdpClient>();
-            Receiver = new Ref<UdpClient>();
-
-            Sender.Value = new UdpClient(localSenderPort);
-            Receiver.Value = new UdpClient(localReceiverPort);
+            Client = new Ref<UdpClient>();
+            Client.Value = new UdpClient(localPort);
         }
 
         protected void LogError(string error)

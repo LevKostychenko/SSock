@@ -31,8 +31,7 @@ namespace SSock.Client.Core.Abstract.Clients
             IConfiguration configuration,
             IPacketService<ServerPacket, ClientPacket> packetService)
             : base(
-                  Int32.Parse(configuration["localSenderPort"]),
-                  Int32.Parse(configuration["localReceiverPort"]))
+                  Int32.Parse(configuration["localPort"]))
         {
             _configuration = configuration;
             _packetService = packetService;
@@ -58,7 +57,7 @@ namespace SSock.Client.Core.Abstract.Clients
                     var parsedCommand = _packetService.GetCommandParts(Console.ReadLine());
 
                     await _dataTransitService.SendDataAsync(
-                        Sender,
+                        Client,
                         _packetService.CreatePacket(
                             new ServerPacket
                             {
@@ -72,7 +71,7 @@ namespace SSock.Client.Core.Abstract.Clients
                         ipPoint);
 
                     var receivedData = await _dataTransitService.ReadDataAsync(
-                        Receiver,
+                        Client,
                         x => _packetService.ParsePacket(x),
                         remoteEndPoint);
 
@@ -100,11 +99,10 @@ namespace SSock.Client.Core.Abstract.Clients
             IPEndPoint ipPoint)
         {
             Console.WriteLine("Connection to the server...");
-            // client.Connect(ipPoint);
             ClientId = Guid.NewGuid().ToString();
 
             await _dataTransitService.SendDataAsync(
-                       Sender,
+                       Client,
                        _packetService.CreatePacket(
                            new ServerPacket
                            {
@@ -114,7 +112,7 @@ namespace SSock.Client.Core.Abstract.Clients
                        ipPoint);
 
             var receivedData = await _dataTransitService.ReadDataAsync(
-                Receiver,
+                Client,
                 x => _packetService.ParsePacket(x),
                 remoteEndPoint);
             if (receivedData.Status == Statuses.Connected)

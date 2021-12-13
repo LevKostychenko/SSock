@@ -27,20 +27,15 @@ namespace SSock.Client.Core.ResponseProcessing
 
         private readonly IServiceProvider _serviceProvider;
 
-        private Ref<UdpClient> _sender;
-        private Ref<UdpClient> _receiver;
+        private Ref<UdpClient> _client;
         private Ref<IPEndPoint> _remoteEndPoint;
-
-        private int responseWait = 0;
 
         public InitUploadResponseProcessor(
             IServiceProvider serviceProvider,
-            Ref<UdpClient> sender,
-            Ref<UdpClient> receiver)
+            Ref<UdpClient> client)
         {
             _serviceProvider = serviceProvider;
-            _sender = sender;
-            _receiver = receiver;
+            _client = client;
             _remoteEndPoint = new Ref<IPEndPoint>();
         }
 
@@ -84,11 +79,8 @@ namespace SSock.Client.Core.ResponseProcessing
 
             var chunkSize = Int32.Parse(config["chunkSize"]);
 
-            _receiver.Value.Client.ReceiveBufferSize = int.MaxValue;
-            _receiver.Value.Client.SendBufferSize = int.MaxValue;
-
-            _sender.Value.Client.ReceiveBufferSize = int.MaxValue;
-            _sender.Value.Client.SendBufferSize = int.MaxValue;
+            _client.Value.Client.ReceiveBufferSize = int.MaxValue;
+            _client.Value.Client.SendBufferSize = int.MaxValue;
 
             await UploadFileAsync(
                 clientId,
@@ -171,12 +163,12 @@ namespace SSock.Client.Core.ResponseProcessing
             var commitPacket = GetCommitPacket(clientId, uploadingHash);
 
             await dataTransitService.SendDataAsync(
-                _sender, 
+                _client, 
                 commitPacket,
                 _remoteEndPoint.Value);
             return await dataTransitService
                     .ReadDataAsync(
-                    _receiver,
+                    _client,
                     p => packetService.ParsePacket(p),
                     _remoteEndPoint);
         }
@@ -204,6 +196,7 @@ namespace SSock.Client.Core.ResponseProcessing
             {
                 using var reader = new BinaryReader(fileReader);
                 int bytesToRead = (int)fileReader.Length;
+                var iterations = 0;
 
                 do
                 {
@@ -212,17 +205,23 @@ namespace SSock.Client.Core.ResponseProcessing
 
                     var packet = GetUploadPacket(clientId, uploadingHash, chunk);
 
+                    if (iterations >= 100)
+                    {
+                        await _client.Value.SendAsync(new byte[0], 0, _remoteEndPoint.Value);
+                        iterations = 0;
+                    }
+
                     await dataTransitService.SendDataAsync(
-                        _sender, 
+                        _client, 
                         packet,
                         _remoteEndPoint.Value);
                     ClientPacket response = null;
 
                     try
-                    {
+                    {                        
                         response = await dataTransitService
                             .ReadDataAsync(
-                                _receiver,
+                                _client,
                                 p => packetService.ParsePacket(p),
                                 _remoteEndPoint);
                     }
@@ -230,12 +229,12 @@ namespace SSock.Client.Core.ResponseProcessing
                     {
                         await ReconnectSocketAsync(clientId);
                         await dataTransitService.SendDataAsync(
-                            _sender, 
+                            _client, 
                             packet,
                             _remoteEndPoint.Value);
                         response = await dataTransitService
                             .ReadDataAsync(
-                                _receiver,
+                                _client,
                                 p => packetService.ParsePacket(p),
                                 _remoteEndPoint);
                     }
@@ -251,6 +250,7 @@ namespace SSock.Client.Core.ResponseProcessing
                         return;
                     }
 
+                    iterations ++;
                 } while (bytesToRead > 0);
             }
         }
@@ -277,7 +277,7 @@ namespace SSock.Client.Core.ResponseProcessing
                 ipPoint,
                 clientId);
 
-            _sender.Value = newClient;
+            _client.Value = newClient;
         }
 
         private async Task<bool> ConnectSocketAsync(

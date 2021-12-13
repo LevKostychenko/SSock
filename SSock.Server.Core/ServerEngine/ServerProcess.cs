@@ -31,8 +31,7 @@ namespace SSock.Server.Core.ServerEngine
             IDataTransitService dataTransitService,
             IConfiguration configuration)
             : base(
-                  Int32.Parse(configuration.GetSection("listener")["receiverPort"]),
-                  Int32.Parse(configuration.GetSection("listener")["senderPort"]))
+                  Int32.Parse(configuration.GetSection("listener")["localPort"]))
         {
             _packetService = packetService;
             _dataTransitService = dataTransitService;
@@ -48,7 +47,7 @@ namespace SSock.Server.Core.ServerEngine
                 while (true)
                 {                    
                     var packet = await _dataTransitService.ReadDataAsync(
-                        Receiver, 
+                        Client, 
                         x => ParsePacket(x),
                         _remoteEndPoint);                  
                     var (isNewClient, clientId) = IsNewClientConnected(packet);
@@ -69,7 +68,7 @@ namespace SSock.Server.Core.ServerEngine
                         if (IsRequestToClose(response))
                         {
                             await _dataTransitService.SendDataAsync(
-                                Sender,
+                                Client,
                                 _packetService.CreatePacket(
                                 new ClientPacket
                                 {
@@ -83,7 +82,7 @@ namespace SSock.Server.Core.ServerEngine
                     catch (NotSupportedException)
                     {
                         await _dataTransitService.SendDataAsync(
-                            Sender,
+                            Client,
                             _packetService.CreatePacket(
                             new ClientPacket
                             {
@@ -94,7 +93,7 @@ namespace SSock.Server.Core.ServerEngine
                     }
 
                     await _dataTransitService.SendDataAsync(
-                        Sender, 
+                        Client, 
                         _packetService.CreatePacket(
                             new ClientPacket
                             {
@@ -131,12 +130,10 @@ namespace SSock.Server.Core.ServerEngine
 
         private async Task NewClientConnectedAsync(string clientId)
         {
-            // client.Connect(remoteEndPoint.Value);
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
-            //client.Connect();
             await _dataTransitService.SendDataAsync(
-                Sender, 
+                Client, 
                 _packetService.CreatePacket(
                 new ClientPacket
                 {

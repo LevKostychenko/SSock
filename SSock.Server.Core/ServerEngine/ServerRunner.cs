@@ -49,10 +49,6 @@ namespace SSock.Server.Core.ServerEngine
             }
             finally
             {
-                if (client != null)
-                {
-                    client.Close();
-                }
             }
         }
 

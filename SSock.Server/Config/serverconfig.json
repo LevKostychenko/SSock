@@ -1,8 +1,7 @@
 {
   "listener": {
     "address": "25.88.148.236",
-    "receiverPort": "8888",
-    "senderPort": "8887"
+    "localPort": "8889"
   },
 
   "filestorage": {

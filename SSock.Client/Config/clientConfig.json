@@ -4,8 +4,7 @@
     "port": "8889"
   },
 
-  "localReceiverPort": "8888",
-  "localSenderPort": "8887",
+  "localPort": "8887",
   "chunkSize": 896
   // init_upload C:\Users\Leu.Kastsiuchenka\Downloads\video1.mp4
   // init_upload C:\Users\Leu.Kastsiuchenka\Downloads\ER-diagramm-nssql.png

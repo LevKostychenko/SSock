@@ -18,8 +18,7 @@ namespace SSock.Client.Core.ResponseProcessing
 
         public IResponseProcessor CreateResponseProcessor(
             string command,
-            Ref<UdpClient> receiver,
-            Ref<UdpClient> sender)
+            Ref<UdpClient> client)
         {
             switch (command.ToUpper())
             {
@@ -27,15 +26,13 @@ namespace SSock.Client.Core.ResponseProcessing
                     {
                         return new InitUploadResponseProcessor(
                             _serviceProvider,
-                            sender,
-                            receiver);
+                            client);
                     }
                 default:
                     {
                         return new DefaultResponseProcessor<string>(
                             _serviceProvider,
-                            sender,
-                            receiver);
+                            client);
                     }
             }
         }
