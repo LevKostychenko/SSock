@@ -164,7 +164,7 @@ namespace SSock.Client.Core.ResponseProcessing
             var commitPacket = GetCommitPacket(clientId, uploadingHash);
 
             await dataTransitService.SendDataAsync(
-                _client, 
+                _client,
                 commitPacket,
                 _remoteEndPoint.Value);
             return await dataTransitService
@@ -199,10 +199,6 @@ namespace SSock.Client.Core.ResponseProcessing
                 int bytesToRead = (int)fileReader.Length;
                 var iterations = 0;
 
-                var timer = new Timer(1000);
-                timer.AutoReset = true;
-                timer.Elapsed += OnTimerElapsed;
-                // timer.Start();
                 _client.Value.Client.Blocking = false;
                 _client.Value.Client.SendTimeout = Int32.MaxValue;
                 _client.Value.Client.ReceiveTimeout = Int32.MaxValue;
@@ -220,37 +216,29 @@ namespace SSock.Client.Core.ResponseProcessing
                         iterations = 0;
                     }
 
+                    var timer = new Timer(2000);
+                    timer.Elapsed += async (object obj, ElapsedEventArgs e) =>
+                    {
+                        await dataTransitService.SendDataAsync(
+                            _client,
+                            packet,
+                            _remoteEndPoint.Value);
+                        timer.Stop();
+                    };
+
                     await dataTransitService.SendDataAsync(
-                        _client, 
+                        _client,
                         packet,
                         _remoteEndPoint.Value);
                     ClientPacket response = null;
+                    timer.Start();
 
-                    try
-                    { 
-                        while (_client.Value.Available <= 0)
-                        {
-
-                        }
-                        response = await dataTransitService
-                            .ReadDataAsync(
-                                _client,
-                                p => packetService.ParsePacket(p),
-                                _remoteEndPoint);
-                    }
-                    catch (Exception ex)
-                    {
-                        await ReconnectSocketAsync(clientId);
-                        await dataTransitService.SendDataAsync(
-                            _client, 
-                            packet,
-                            _remoteEndPoint.Value);
-                        response = await dataTransitService
-                            .ReadDataAsync(
-                                _client,
-                                p => packetService.ParsePacket(p),
-                                _remoteEndPoint);
-                    }
+                    response = await dataTransitService
+                        .ReadDataAsync(
+                            _client,
+                            p => packetService.ParsePacket(p),
+                            _remoteEndPoint);
+                    timer.Stop();
 
                     progress.Report(
                         (double)Decimal.Divide(fileReader.Length - bytesToRead, fileReader.Length));
@@ -263,39 +251,9 @@ namespace SSock.Client.Core.ResponseProcessing
                         return;
                     }
 
-                    iterations ++;
+                    iterations++;
                 } while (bytesToRead > 0);
             }
-        }
-
-        private void OnTimerElapsed(object obj, ElapsedEventArgs e)
-        {
-            _client.Value.Send(new byte[0], 0, _remoteEndPoint.Value);
-        }
-
-        // Fix for udp
-        private async Task ReconnectSocketAsync(
-            string clientId)
-        {
-            var config = (IConfiguration)_serviceProvider
-                .GetService(typeof(IConfiguration));
-
-            var (port, address) = (
-                config.GetSection("server")["port"],
-                config.GetSection("server")["address"]);
-
-            var ipPoint = new IPEndPoint(
-                IPAddress.Parse(address),
-                Int32.Parse(port));
-
-            var newClient = new UdpClient();
-
-            await ConnectSocketAsync(
-                newClient,
-                ipPoint,
-                clientId);
-
-            _client.Value = newClient;
         }
 
         private async Task<bool> ConnectSocketAsync(
