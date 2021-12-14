@@ -27,6 +27,8 @@ namespace SSock.Core.Services.Abstract.Communication
             IEnumerable<byte> data,
             IPEndPoint endPoint);
 
+        int GetUnusedTcpPort();
+
         bool IsSocketConnected(Socket socket);
     }
 }

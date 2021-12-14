@@ -16,6 +16,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace SSock.Client.Core.ResponseProcessing
 {
@@ -198,6 +199,14 @@ namespace SSock.Client.Core.ResponseProcessing
                 int bytesToRead = (int)fileReader.Length;
                 var iterations = 0;
 
+                var timer = new Timer(1000);
+                timer.AutoReset = true;
+                timer.Elapsed += OnTimerElapsed;
+                // timer.Start();
+                _client.Value.Client.Blocking = false;
+                _client.Value.Client.SendTimeout = Int32.MaxValue;
+                _client.Value.Client.ReceiveTimeout = Int32.MaxValue;
+
                 do
                 {
                     chunk = reader.ReadBytes(chunkSize);
@@ -218,7 +227,11 @@ namespace SSock.Client.Core.ResponseProcessing
                     ClientPacket response = null;
 
                     try
-                    {                        
+                    { 
+                        while (_client.Value.Available <= 0)
+                        {
+
+                        }
                         response = await dataTransitService
                             .ReadDataAsync(
                                 _client,
@@ -253,6 +266,11 @@ namespace SSock.Client.Core.ResponseProcessing
                     iterations ++;
                 } while (bytesToRead > 0);
             }
+        }
+
+        private void OnTimerElapsed(object obj, ElapsedEventArgs e)
+        {
+            _client.Value.Send(new byte[0], 0, _remoteEndPoint.Value);
         }
 
         // Fix for udp
