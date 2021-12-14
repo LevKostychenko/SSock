@@ -38,18 +38,30 @@ namespace SSock.Server.Core.ServerEngine
             _commandProcessor = commandProcessor;
         }
 
-        // TODO: Refactor this method
         public async Task ProcessAsync(
             Action stopServerDelegate)
         {
-            try
+            Client.Value.Client.Blocking = false;
+            Client.Value.Client.SendTimeout = Int32.MaxValue;
+            Client.Value.Client.ReceiveTimeout = Int32.MaxValue;
+
+            Client.Value.Client.ReceiveBufferSize = Int32.MaxValue;
+            Client.Value.Client.SendBufferSize = Int32.MaxValue;
+
+            while (true)
             {
-                while (true)
+                try
                 {                    
-                    var packet = await _dataTransitService.ReadDataAsync(
-                        Client, 
+                    if (Client.Value.Available <= 0)
+                    {
+                        continue;
+                    } 
+
+                    var packet = _dataTransitService.ReadDataAsync(
+                        Client,
                         x => ParsePacket(x),
-                        _remoteEndPoint);                  
+                        _remoteEndPoint).Result;
+
                     var (isNewClient, clientId) = IsNewClientConnected(packet);
 
                     if (isNewClient && !string.IsNullOrEmpty(clientId))
@@ -70,10 +82,10 @@ namespace SSock.Server.Core.ServerEngine
                             await _dataTransitService.SendDataAsync(
                                 Client,
                                 _packetService.CreatePacket(
-                                new ClientPacket
-                                {
-                                    Status = Statuses.Disconnected
-                                }),
+                                    new ClientPacket
+                                    {
+                                        Status = Statuses.Disconnected
+                                    }),
                                 _remoteEndPoint.Value);
                             stopServerDelegate();
                             break;
@@ -92,24 +104,25 @@ namespace SSock.Server.Core.ServerEngine
                         continue;
                     }
 
-                    await _dataTransitService.SendDataAsync(
-                        Client, 
+                    _dataTransitService.SendDataAsync(
+                        Client,
                         _packetService.CreatePacket(
                             new ClientPacket
                             {
                                 Status = Statuses.Ok,
                                 Payload = _dataTransitService.ConvertToByteArray(response)
                             }),
-                        _remoteEndPoint.Value);
+                        _remoteEndPoint.Value).Wait();
                 }
-            }
-            catch (Exception ex)
-            {
-                LogError(ex.Message);
-            }
-            finally
-            {
-            }
+                catch (Exception ex)
+                {
+                    LogError(ex.Message);
+                    continue;
+                }
+                finally
+                {
+                }
+            }                       
         }
 
         private bool IsRequestToClose(object serverResponse)
