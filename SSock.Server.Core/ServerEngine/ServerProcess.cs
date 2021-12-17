@@ -10,7 +10,6 @@ using SSock.Server.Domain;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SSock.Server.Core.ServerEngine
@@ -51,11 +50,11 @@ namespace SSock.Server.Core.ServerEngine
             while (true)
             {
                 try
-                {                    
+                {
                     if (Client.Value.Available <= 0)
                     {
                         continue;
-                    } 
+                    }
 
                     var packet = _dataTransitService.ReadDataAsync(
                         Client,
@@ -72,47 +71,58 @@ namespace SSock.Server.Core.ServerEngine
 
                     Console.WriteLine($"{packet.Command}");
                     object response = null;
+                    var isRequestToClose = false;
 
-                    try
-                    {
-                        response = await _commandProcessor.ProcessAsync(packet);
-
-                        if (IsRequestToClose(response))
+                    ServerSession.ExecuteInClientThread(
+                        clientId,
+                        async () =>
                         {
-                            await _dataTransitService.SendDataAsync(
-                                Client,
-                                _packetService.CreatePacket(
+                            try
+                            {
+                                response = await _commandProcessor.ProcessAsync(packet);
+
+                                if (IsRequestToClose(response))
+                                {
+                                    await _dataTransitService.SendDataAsync(
+                                        Client,
+                                        _packetService.CreatePacket(
+                                            new ClientPacket
+                                            {
+                                                Status = Statuses.Disconnected
+                                            }),
+                                        _remoteEndPoint.Value);
+                                    isRequestToClose = true;
+                                    stopServerDelegate();
+                                }
+                            }
+                            catch (NotSupportedException)
+                            {
+                                await _dataTransitService.SendDataAsync(
+                                    Client,
+                                    _packetService.CreatePacket(
                                     new ClientPacket
                                     {
-                                        Status = Statuses.Disconnected
+                                        Status = Statuses.Unsupported
                                     }),
-                                _remoteEndPoint.Value);
-                            stopServerDelegate();
-                            break;
-                        }
-                    }
-                    catch (NotSupportedException)
-                    {
-                        await _dataTransitService.SendDataAsync(
+                                    _remoteEndPoint.Value);
+                                return;
+                            }
+
+                            await _dataTransitService.SendDataAsync(
                             Client,
                             _packetService.CreatePacket(
-                            new ClientPacket
-                            {
-                                Status = Statuses.Unsupported
-                            }),
+                                new ClientPacket
+                                {
+                                    Status = Statuses.Ok,
+                                    Payload = _dataTransitService.ConvertToByteArray(response)
+                                }),
                             _remoteEndPoint.Value);
-                        continue;
-                    }
+                        });
 
-                    _dataTransitService.SendDataAsync(
-                        Client,
-                        _packetService.CreatePacket(
-                            new ClientPacket
-                            {
-                                Status = Statuses.Ok,
-                                Payload = _dataTransitService.ConvertToByteArray(response)
-                            }),
-                        _remoteEndPoint.Value).Wait();
+                    if (isRequestToClose)
+                    {
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -122,7 +132,7 @@ namespace SSock.Server.Core.ServerEngine
                 finally
                 {
                 }
-            }                       
+            }
         }
 
         private bool IsRequestToClose(object serverResponse)
@@ -138,15 +148,16 @@ namespace SSock.Server.Core.ServerEngine
                 return (true, packet.ClientId);
             }
 
-            return (false, string.Empty);
+            return (false, packet.ClientId);
         }
 
         private async Task NewClientConnectedAsync(string clientId)
         {
             ServerSession.InitNewSession(clientId);
             Console.WriteLine($"Client with ID {clientId} is connected.");
+
             await _dataTransitService.SendDataAsync(
-                Client, 
+                Client,
                 _packetService.CreatePacket(
                 new ClientPacket
                 {
@@ -156,6 +167,6 @@ namespace SSock.Server.Core.ServerEngine
         }
 
         protected override ServerPacket ParsePacket(IEnumerable<byte> packet)
-            => _packetService.ParsePacket(packet);   
+            => _packetService.ParsePacket(packet);
     }
 }

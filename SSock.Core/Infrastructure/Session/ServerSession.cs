@@ -1,6 +1,9 @@
 ﻿using SSock.Core.Abstract.Infrastructure.Session;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SSock.Core.Infrastructure.Session
 {
@@ -28,6 +31,25 @@ namespace SSock.Core.Infrastructure.Session
 
             SessionsCache[newSessionId] = new Cache();
             return newSessionId;
+        }
+
+        public static bool ExecuteInClientThread(
+            string clientId,
+            Func<Task> expresion)
+        {
+            if (SessionsIds.Any(x => x.clientId == clientId))
+            {
+                return ThreadPool.QueueUserWorkItem(WorkItemProc, expresion as object);
+            }
+
+            return false;
+        }
+
+        private static void WorkItemProc(object state)
+        {
+            var execFunc = state as Func<Task>;
+
+            execFunc.Invoke();
         }
     }
 }
