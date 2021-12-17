@@ -224,6 +224,7 @@ namespace SSock.Client.Core.ResponseProcessing
                             packet,
                             _remoteEndPoint.Value);
                         timer.Stop();
+                        timer.Start();
                     };
 
                     await dataTransitService.SendDataAsync(
